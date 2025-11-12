@@ -13,10 +13,14 @@ Provide a clear and concise description of your changes.
 - [ ] Code refactoring
 - [ ] Performance improvement
 - [ ] Test addition/improvement
+- [ ] CI/CD workflow change
 
 ## Related Issues
 
-Fixes #(issue_number)
+<!-- Link at least one issue using keywords: Closes, Fixes, Resolves, Relates to -->
+
+Closes #(issue_number)
+<!-- or Fixes #123, Relates to #456 -->
 
 ## Changes Made
 
@@ -45,13 +49,31 @@ Add screenshots to help explain your changes.
 
 ## Checklist
 
+### Code Quality
 - [ ] My code follows the project's style guidelines
+- [ ] Python syntax is valid (if applicable)
+- [ ] Bash scripts have valid syntax (if applicable)
+- [ ] Markdown files are properly formatted
+- [ ] No hardcoded secrets or sensitive data
 - [ ] I have commented my code where necessary
+
+### Documentation
 - [ ] I have updated the documentation (if needed)
-- [ ] I have updated CHANGELOG.md with my changes
-- [ ] My changes generate no new warnings
+- [ ] I have updated CHANGELOG.md with my changes (for releases)
+- [ ] README.md is updated if user-facing changes
+
+### Testing
 - [ ] I have tested my changes thoroughly
-- [ ] All existing tests still pass
+- [ ] Tested installation (./install.sh or install.ps1)
+- [ ] Tested slash command (/enhance-claude-md) if applicable
+- [ ] Tested guardian agent if applicable
+- [ ] Tested on target environment (macOS/Linux/Windows)
+
+### CI/CD
+- [ ] PR title follows Conventional Commits format (e.g., `feat(installer): add feature`)
+- [ ] Branch name follows convention (feature/, fix/, hotfix/, etc.)
+- [ ] All quality gates passing
+- [ ] No merge conflicts with target branch
 
 ## Additional Notes
 

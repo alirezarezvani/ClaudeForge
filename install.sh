@@ -41,12 +41,33 @@ echo -e "${BLUE}║                                        ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
 
-# Check if running from correct directory
+# Check if running from correct directory or need to download
+REMOTE_INSTALL=false
 if [ ! -d "skill" ] || [ ! -d "command" ] || [ ! -d "agent" ]; then
-    print_error "Installation files not found!"
-    print_info "Please run this script from the ClaudeForge repository root."
-    print_info "Usage: cd ClaudeForge && ./install.sh"
-    exit 1
+    print_info "Installing from GitHub..."
+    REMOTE_INSTALL=true
+
+    # Create temporary directory
+    TEMP_DIR=$(mktemp -d)
+    cd "$TEMP_DIR"
+
+    print_info "Downloading ClaudeForge v1.0.0..."
+
+    # Download using curl or wget
+    if command -v curl &> /dev/null; then
+        curl -fsSL https://github.com/alirezarezvani/ClaudeForge/archive/refs/tags/v1.0.0.tar.gz -o claudeforge.tar.gz
+    elif command -v wget &> /dev/null; then
+        wget -q https://github.com/alirezarezvani/ClaudeForge/archive/refs/tags/v1.0.0.tar.gz -O claudeforge.tar.gz
+    else
+        print_error "Neither curl nor wget found. Please install one of them."
+        exit 1
+    fi
+
+    print_info "Extracting files..."
+    tar -xzf claudeforge.tar.gz
+    cd ClaudeForge-1.0.0
+
+    print_success "Downloaded ClaudeForge successfully"
 fi
 
 # Check for Claude Code installation
@@ -211,3 +232,9 @@ echo ""
 
 print_success "Thank you for installing ClaudeForge!"
 echo ""
+
+# Cleanup temporary directory if remote install
+if [ "$REMOTE_INSTALL" = true ]; then
+    cd "$HOME"
+    rm -rf "$TEMP_DIR"
+fi

@@ -41,12 +41,34 @@ Write-Host "║                                        ║" -ForegroundColor Blu
 Write-Host "╚════════════════════════════════════════╝" -ForegroundColor Blue
 Write-Host ""
 
-# Check if running from correct directory
+# Check if running from correct directory or need to download
+$RemoteInstall = $false
 if (-not (Test-Path "skill") -or -not (Test-Path "command") -or -not (Test-Path "agent")) {
-    Write-Error-Custom "Installation files not found!"
-    Write-Info "Please run this script from the ClaudeForge repository root."
-    Write-Info "Usage: cd ClaudeForge; .\install.ps1"
-    exit 1
+    Write-Info "Installing from GitHub..."
+    $RemoteInstall = $true
+
+    # Create temporary directory
+    $TempDir = New-Item -ItemType Directory -Path ([System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), [System.Guid]::NewGuid().ToString())) -Force
+    Set-Location $TempDir
+
+    Write-Info "Downloading ClaudeForge v1.0.0..."
+
+    # Download archive
+    $archiveUrl = "https://github.com/alirezarezvani/ClaudeForge/archive/refs/tags/v1.0.0.zip"
+    $archivePath = Join-Path $TempDir "claudeforge.zip"
+
+    try {
+        Invoke-WebRequest -Uri $archiveUrl -OutFile $archivePath -UseBasicParsing
+    } catch {
+        Write-Error-Custom "Failed to download ClaudeForge. Please check your internet connection."
+        exit 1
+    }
+
+    Write-Info "Extracting files..."
+    Expand-Archive -Path $archivePath -DestinationPath $TempDir -Force
+    Set-Location (Join-Path $TempDir "ClaudeForge-1.0.0")
+
+    Write-Success "Downloaded ClaudeForge successfully"
 }
 
 # Check for Claude Code installation
@@ -234,3 +256,9 @@ Write-Host ""
 
 Write-Success "Thank you for installing ClaudeForge!"
 Write-Host ""
+
+# Cleanup temporary directory if remote install
+if ($RemoteInstall) {
+    Set-Location $env:USERPROFILE
+    Remove-Item -Recurse -Force $TempDir -ErrorAction SilentlyContinue
+}

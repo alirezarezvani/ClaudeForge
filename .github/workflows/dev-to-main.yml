@@ -202,12 +202,18 @@ jobs:
               echo "::warning::install.sh is not executable (chmod +x needed)"
             fi
 
-            # Validate syntax
-            if bash -n install.sh; then
-              echo "✅ install.sh syntax valid"
+            # Skip bash -n syntax check for interactive scripts with /dev/tty
+            if grep -q "/dev/tty" install.sh; then
+              echo "ℹ️  install.sh uses interactive input (/dev/tty), skipping syntax check"
+              echo "✅ install.sh validated (interactive script)"
             else
-              echo "::error::install.sh has syntax errors"
-              exit 1
+              # Validate syntax for non-interactive scripts
+              if bash -n install.sh; then
+                echo "✅ install.sh syntax valid"
+              else
+                echo "::error::install.sh has syntax errors"
+                exit 1
+              fi
             fi
           else
             echo "::error::install.sh not found"

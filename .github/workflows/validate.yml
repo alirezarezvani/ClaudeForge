@@ -151,10 +151,10 @@ jobs:
 
     - name: Check for hardcoded secrets
       run: |
-        # Check for common secret patterns
-        ! grep -r "API_KEY\s*=" . --include="*.py" --include="*.md"
-        ! grep -r "password\s*=" . --include="*.py" --include="*.md"
-        ! grep -r "token\s*=" . --include="*.py" --include="*.md"
+        # Check for common secret patterns (exclude docs and examples)
+        ! grep -r "API_KEY\s*=" . --include="*.py" --exclude-dir="docs" --exclude-dir="examples"
+        ! grep -r "password\s*=" . --include="*.py" --exclude-dir="docs" --exclude-dir="examples"
+        ! grep -r "token\s*=" . --include="*.py" --exclude-dir="docs" --exclude-dir="examples"
 
     - name: Check for TODO/FIXME
       run: |

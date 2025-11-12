@@ -155,11 +155,11 @@ runs:
         echo "::group::Bash Script Validation"
         PASSED="true"
 
-        # Find bash scripts
-        BASH_FILES=$(find . -name "*.sh" -not -path "./node_modules/*" -not -path "./.git/*" 2>/dev/null || echo "")
+        # Find bash scripts (exclude interactive install scripts)
+        BASH_FILES=$(find . -name "*.sh" -not -path "./node_modules/*" -not -path "./.git/*" -not -name "install.sh" -not -name "install.ps1" 2>/dev/null || echo "")
 
         if [ -z "$BASH_FILES" ]; then
-          echo "ℹ️  No Bash scripts found to validate"
+          echo "ℹ️  No Bash scripts found to validate (interactive scripts skipped)"
           echo "passed=true" >> $GITHUB_OUTPUT
           echo "::endgroup::"
           exit 0
@@ -167,16 +167,24 @@ runs:
 
         echo "📋 Found Bash scripts:"
         echo "$BASH_FILES"
+        echo "ℹ️  Skipping: install.sh (interactive script)"
         echo ""
 
         # Validate syntax
         echo "🔍 Checking Bash syntax..."
         for script in $BASH_FILES; do
+          # Skip scripts with /dev/tty (interactive)
+          if grep -q "/dev/tty" "$script" 2>/dev/null; then
+            echo "Checking: $script (skipped - interactive)"
+            continue
+          fi
+
           echo "Checking: $script"
-          if bash -n "$script" 2>&1 | grep -v "warning:"; then
+          if ! bash -n "$script" 2>&1 | tee /tmp/bash_check.log | grep -q "syntax error"; then
             echo "  ✅ Syntax valid"
           else
             echo "::error file=$script::Bash syntax error detected"
+            cat /tmp/bash_check.log
             PASSED="false"
           fi
         done

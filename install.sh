@@ -84,8 +84,8 @@ fi
 echo ""
 print_info "Where would you like to install ClaudeForge?"
 echo ""
-echo "  ${GREEN}1)${NC} User-level (~/.claude/)     - Available in all Claude Code projects"
-echo "  ${GREEN}2)${NC} Project-level (./.claude/)  - Available only in current project"
+echo -e "  ${GREEN}1)${NC} User-level (~/.claude/)     - Available in all Claude Code projects"
+echo -e "  ${GREEN}2)${NC} Project-level (./.claude/)  - Available only in current project"
 echo ""
 
 while true; do
@@ -196,13 +196,13 @@ echo ""
 # Next steps
 print_info "Next steps:"
 echo ""
-echo "  ${GREEN}1.${NC} Restart Claude Code (important!)"
-echo "  ${GREEN}2.${NC} Navigate to your project directory"
-echo "  ${GREEN}3.${NC} Run the command:"
+echo -e "  ${GREEN}1.${NC} Restart Claude Code (important!)"
+echo -e "  ${GREEN}2.${NC} Navigate to your project directory"
+echo -e "  ${GREEN}3.${NC} Run the command:"
 echo ""
-echo "     ${BLUE}/enhance-claude-md${NC}"
+echo -e "     ${BLUE}/enhance-claude-md${NC}"
 echo ""
-echo "  ${GREEN}4.${NC} Follow the interactive prompts"
+echo -e "  ${GREEN}4.${NC} Follow the interactive prompts"
 echo ""
 
 # Additional information
@@ -213,7 +213,7 @@ echo "  • Installation:     docs/INSTALLATION.md"
 echo "  • Architecture:     docs/ARCHITECTURE.md"
 echo "  • Troubleshooting:  docs/TROUBLESHOOTING.md"
 echo ""
-echo "  • GitHub:           ${BLUE}https://github.com/alirezarezvani/ClaudeForge${NC}"
+echo -e "  • GitHub:           ${BLUE}https://github.com/alirezarezvani/ClaudeForge${NC}"
 echo ""
 
 # Uninstall instructions

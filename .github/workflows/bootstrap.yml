@@ -1,0 +1,190 @@
+name: 'Bootstrap Repository'
+
+on:
+  workflow_dispatch:
+    inputs:
+      create-labels:
+        description: 'Create standard labels'
+        required: false
+        default: 'true'
+        type: boolean
+      create-milestones:
+        description: 'Create initial milestones'
+        required: false
+        default: 'true'
+        type: boolean
+      validate-settings:
+        description: 'Validate repository settings'
+        required: false
+        default: 'true'
+        type: boolean
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  bootstrap:
+    name: Setup Repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Rate limit check
+        uses: ./.github/actions/rate-limit-check
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          minimum-remaining: 100
+
+      - name: Create standard labels
+        if: inputs.create-labels == true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "::group::Creating Labels"
+
+          # Type labels
+          gh label create "bug" --description "Something isn't working" --color "d73a4a" --force
+          gh label create "enhancement" --description "New feature or request" --color "a2eeef" --force
+          gh label create "documentation" --description "Improvements or additions to documentation" --color "0075ca" --force
+          gh label create "refactor" --description "Code refactoring" --color "fbca04" --force
+          gh label create "performance" --description "Performance improvements" --color "00ff00" --force
+          gh label create "security" --description "Security issues or improvements" --color "ee0701" --force
+          gh label create "test" --description "Testing related" --color "1d76db" --force
+
+          # Priority labels
+          gh label create "priority: critical" --description "Critical priority" --color "b60205" --force
+          gh label create "priority: high" --description "High priority" --color "d93f0b" --force
+          gh label create "priority: medium" --description "Medium priority" --color "fbca04" --force
+          gh label create "priority: low" --description "Low priority" --color "0e8a16" --force
+
+          # Status labels
+          gh label create "status: blocked" --description "Blocked by another issue" --color "d93f0b" --force
+          gh label create "status: in progress" --description "Work in progress" --color "0052cc" --force
+          gh label create "status: review needed" --description "Needs review" --color "fbca04" --force
+          gh label create "status: needs discussion" --description "Needs team discussion" --color "d876e3" --force
+
+          # Component labels
+          gh label create "component: installer" --description "Installation scripts" --color "5319e7" --force
+          gh label create "component: skill" --description "Python skill modules" --color "5319e7" --force
+          gh label create "component: command" --description "Slash commands" --color "5319e7" --force
+          gh label create "component: agent" --description "Guardian agent" --color "5319e7" --force
+          gh label create "component: docs" --description "Documentation" --color "5319e7" --force
+          gh label create "component: ci/cd" --description "CI/CD workflows" --color "5319e7" --force
+
+          # Additional labels
+          gh label create "good first issue" --description "Good for newcomers" --color "7057ff" --force
+          gh label create "help wanted" --description "Extra attention is needed" --color "008672" --force
+          gh label create "dependencies" --description "Dependency updates" --color "0366d6" --force
+          gh label create "breaking change" --description "Breaking change" --color "ee0701" --force
+
+          echo "✅ Labels created successfully"
+          echo "::endgroup::"
+
+      - name: Create milestones
+        if: inputs.create-milestones == true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "::group::Creating Milestones"
+
+          # Get current date for due dates
+          CURRENT_DATE=$(date -u +%Y-%m-%d)
+
+          # Calculate due dates (approximate)
+          V1_1_DUE=$(date -u -d "+1 month" +%Y-%m-%dT23:59:59Z 2>/dev/null || date -u -v+1m +%Y-%m-%dT23:59:59Z)
+          V1_2_DUE=$(date -u -d "+2 months" +%Y-%m-%dT23:59:59Z 2>/dev/null || date -u -v+2m +%Y-%m-%dT23:59:59Z)
+          V2_0_DUE=$(date -u -d "+4 months" +%Y-%m-%dT23:59:59Z 2>/dev/null || date -u -v+4m +%Y-%m-%dT23:59:59Z)
+
+          # Create milestones (using gh api since gh doesn't have milestone create command)
+          gh api repos/${{ github.repository }}/milestones \
+            --method POST \
+            --field title="v1.1.0" \
+            --field description="Additional templates, enhanced detection, granular quality scoring" \
+            --field due_on="$V1_1_DUE" || echo "Milestone v1.1.0 may already exist"
+
+          gh api repos/${{ github.repository }}/milestones \
+            --method POST \
+            --field title="v1.2.0" \
+            --field description="VS Code extension, GitHub Actions enhancements, advanced quality hooks" \
+            --field due_on="$V1_2_DUE" || echo "Milestone v1.2.0 may already exist"
+
+          gh api repos/${{ github.repository }}/milestones \
+            --method POST \
+            --field title="v2.0.0" \
+            --field description="AI-powered suggestions, multi-language support, web dashboard, plugin system" \
+            --field due_on="$V2_0_DUE" || echo "Milestone v2.0.0 may already exist"
+
+          echo "✅ Milestones created successfully"
+          echo "::endgroup::"
+
+      - name: Validate repository settings
+        if: inputs.validate-settings == true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "::group::Validating Settings"
+
+          # Get repository info
+          REPO_INFO=$(gh api repos/${{ github.repository }})
+
+          # Check important settings
+          HAS_ISSUES=$(echo "$REPO_INFO" | jq -r '.has_issues')
+          HAS_WIKI=$(echo "$REPO_INFO" | jq -r '.has_wiki')
+          HAS_DISCUSSIONS=$(echo "$REPO_INFO" | jq -r '.has_discussions')
+
+          echo "📊 Repository Settings:"
+          echo "   - Issues: $HAS_ISSUES"
+          echo "   - Wiki: $HAS_WIKI"
+          echo "   - Discussions: $HAS_DISCUSSIONS"
+          echo ""
+
+          if [ "$HAS_ISSUES" != "true" ]; then
+            echo "::warning::Issues are not enabled. Consider enabling them in Settings > General > Features."
+          fi
+
+          if [ "$HAS_DISCUSSIONS" != "true" ]; then
+            echo "::notice::Discussions are not enabled. Consider enabling them for community Q&A."
+          fi
+
+          # Check if default branch is 'main'
+          DEFAULT_BRANCH=$(echo "$REPO_INFO" | jq -r '.default_branch')
+          echo "   - Default Branch: $DEFAULT_BRANCH"
+
+          if [ "$DEFAULT_BRANCH" != "main" ] && [ "$DEFAULT_BRANCH" != "dev" ]; then
+            echo "::warning::Default branch is '$DEFAULT_BRANCH'. Consider using 'main' or 'dev'."
+          fi
+
+          echo "::endgroup::"
+
+      - name: Bootstrap summary
+        run: |
+          echo "## 🎉 Repository Bootstrap Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Actions Performed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ inputs.create-labels }}" == "true" ]]; then
+            echo "- ✅ Created 23 standard labels" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "${{ inputs.create-milestones }}" == "true" ]]; then
+            echo "- ✅ Created 3 milestones (v1.1.0, v1.2.0, v2.0.0)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "${{ inputs.validate-settings }}" == "true" ]]; then
+            echo "- ✅ Validated repository settings" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. Create \`dev\` branch from \`main\`" >> $GITHUB_STEP_SUMMARY
+          echo "2. Configure branch protection rules" >> $GITHUB_STEP_SUMMARY
+          echo "3. Set \`dev\` as default branch for PRs" >> $GITHUB_STEP_SUMMARY
+          echo "4. Review and adjust labels/milestones as needed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 See [GITHUB_WORKFLOWS.md](docs/GITHUB_WORKFLOWS.md) for complete setup guide" >> $GITHUB_STEP_SUMMARY

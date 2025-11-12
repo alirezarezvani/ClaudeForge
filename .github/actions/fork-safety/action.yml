@@ -1,0 +1,93 @@
+name: 'Fork Safety Check'
+description: 'Detect fork PRs to skip write operations and maintain security'
+author: 'ClaudeForge'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  github-token:
+    description: 'GitHub token for API access (usually secrets.GITHUB_TOKEN)'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  is-fork:
+    description: 'Boolean indicating if the PR is from a fork (true/false)'
+    value: ${{ steps.check-fork.outputs.is-fork }}
+  should-skip-writes:
+    description: 'Boolean indicating if write operations should be skipped (true/false)'
+    value: ${{ steps.check-fork.outputs.should-skip-writes }}
+  source-repo:
+    description: 'Full name of the source repository (owner/repo)'
+    value: ${{ steps.check-fork.outputs.source-repo }}
+  base-repo:
+    description: 'Full name of the base repository (owner/repo)'
+    value: ${{ steps.check-fork.outputs.base-repo }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check if PR is from fork
+      id: check-fork
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        echo "::group::Fork Safety Check"
+
+        # Initialize outputs
+        IS_FORK="false"
+        SHOULD_SKIP_WRITES="false"
+        SOURCE_REPO="unknown"
+        BASE_REPO="unknown"
+
+        # Check if this is a pull request event
+        if [[ "${{ github.event_name }}" == "pull_request"* ]]; then
+          echo "📋 Event: Pull Request detected"
+
+          # Get fork status from event context
+          FORK_STATUS="${{ github.event.pull_request.head.repo.fork }}"
+          SOURCE_REPO="${{ github.event.pull_request.head.repo.full_name }}"
+          BASE_REPO="${{ github.event.pull_request.base.repo.full_name }}"
+
+          echo "🔍 Source Repository: $SOURCE_REPO"
+          echo "🎯 Base Repository: $BASE_REPO"
+
+          if [[ "$FORK_STATUS" == "true" ]]; then
+            IS_FORK="true"
+            SHOULD_SKIP_WRITES="true"
+            echo "⚠️  Fork PR detected - Write operations should be skipped"
+            echo "🔒 Security: Preventing potential malicious actions from forked PR"
+          else
+            echo "✅ Same-repository PR - Write operations allowed"
+          fi
+
+        else
+          echo "ℹ️  Not a pull request event - treating as safe (non-fork)"
+          echo "📌 Event type: ${{ github.event_name }}"
+        fi
+
+        # Set outputs
+        echo "is-fork=$IS_FORK" >> $GITHUB_OUTPUT
+        echo "should-skip-writes=$SHOULD_SKIP_WRITES" >> $GITHUB_OUTPUT
+        echo "source-repo=$SOURCE_REPO" >> $GITHUB_OUTPUT
+        echo "base-repo=$BASE_REPO" >> $GITHUB_OUTPUT
+
+        # Summary
+        echo ""
+        echo "📊 Fork Safety Check Results:"
+        echo "   - Is Fork: $IS_FORK"
+        echo "   - Skip Writes: $SHOULD_SKIP_WRITES"
+        echo "   - Source: $SOURCE_REPO"
+        echo "   - Base: $BASE_REPO"
+
+        echo "::endgroup::"
+
+    - name: Log fork detection result
+      shell: bash
+      run: |
+        if [[ "${{ steps.check-fork.outputs.is-fork }}" == "true" ]]; then
+          echo "::warning::This PR is from a fork. Write operations will be skipped for security."
+        fi

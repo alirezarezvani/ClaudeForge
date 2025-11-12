@@ -1,0 +1,181 @@
+name: 'PR into Dev'
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches:
+      - dev
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+jobs:
+  validate-pr:
+    name: Validate PR Structure
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Fork safety check
+        id: fork-check
+        uses: ./.github/actions/fork-safety
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate branch name
+        id: branch-name
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          echo "Branch name: $BRANCH_NAME"
+
+          # Valid prefixes for dev branch
+          VALID_PREFIXES="feature/ fix/ hotfix/ test/ refactor/ docs/"
+
+          VALID=false
+          for prefix in $VALID_PREFIXES; do
+            if [[ "$BRANCH_NAME" == $prefix* ]]; then
+              VALID=true
+              echo "✅ Branch name is valid (starts with $prefix)"
+              break
+            fi
+          done
+
+          if [ "$VALID" = false ]; then
+            echo "::error::Invalid branch name: $BRANCH_NAME"
+            echo "::error::Branch must start with one of: $VALID_PREFIXES"
+            echo "valid=false" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "valid=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate PR title (Conventional Commits)
+        id: pr-title
+        run: |
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          echo "PR Title: $PR_TITLE"
+
+          # Conventional commit format: type(scope): subject
+          # Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
+          if [[ ! "$PR_TITLE" =~ ^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?:\ .+ ]]; then
+            echo "::error::PR title does not follow Conventional Commits format"
+            echo "::error::Format: type(scope): subject"
+            echo "::error::Example: feat(installer): add Windows PowerShell support"
+            echo "::error::Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+            echo "valid=false" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✅ PR title follows Conventional Commits format"
+            echo "valid=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for linked issues
+        id: linked-issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_BODY="${{ github.event.pull_request.body }}"
+
+          echo "Checking for linked issues in PR #$PR_NUMBER"
+
+          # Check for keywords like "Closes", "Fixes", "Resolves", "Relates to"
+          ISSUE_KEYWORDS="Closes|Fixes|Resolves|Relates to|Ref|References"
+
+          if echo "$PR_BODY" | grep -qiE "($ISSUE_KEYWORDS) #[0-9]+"; then
+            echo "✅ Found linked issue(s) in PR body"
+            echo "has-linked-issues=true" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::No linked issues found in PR body"
+            echo "::warning::Please link at least one issue using keywords: Closes #123, Fixes #456, etc."
+            echo "has-linked-issues=false" >> $GITHUB_OUTPUT
+            # Not failing, just warning
+          fi
+
+      - name: Comment on validation failure
+        if: failure() && steps.fork-check.outputs.should-skip-writes != 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const branchValid = '${{ steps.branch-name.outputs.valid }}';
+            const titleValid = '${{ steps.pr-title.outputs.valid }}';
+
+            let comment = '## ❌ PR Validation Failed\n\n';
+
+            if (branchValid !== 'true') {
+              comment += '### Branch Name\n';
+              comment += '- ❌ Branch name must start with: `feature/`, `fix/`, `hotfix/`, `test/`, `refactor/`, or `docs/`\n';
+              comment += `- Current branch: \`${{ github.head_ref }}\`\n\n`;
+            }
+
+            if (titleValid !== 'true') {
+              comment += '### PR Title\n';
+              comment += '- ❌ PR title must follow Conventional Commits format\n';
+              comment += '- Format: `type(scope): subject`\n';
+              comment += '- Example: `feat(installer): add Windows PowerShell support`\n';
+              comment += '- Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`\n\n';
+            }
+
+            comment += '### How to Fix\n\n';
+            comment += '1. Rename your branch if needed: `git branch -m new-branch-name`\n';
+            comment += '2. Update PR title to follow Conventional Commits format\n';
+            comment += '3. Push changes and re-run checks\n\n';
+            comment += '📚 See [CONTRIBUTING.md](../blob/main/docs/CONTRIBUTING.md) for more details.';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+  quality-checks:
+    name: Run Quality Checks
+    needs: validate-pr
+    uses: ./.github/workflows/reusable-pr-checks.yml
+    with:
+      python-version: '3.11'
+      skip-python: false
+      skip-markdown: false
+      skip-bash: false
+      skip-secrets: false
+
+  pr-summary:
+    name: PR Summary
+    needs: [validate-pr, quality-checks]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 📋 PR into Dev - Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.validate-pr.result }}" == "success" ]]; then
+            echo "- ✅ PR structure validated" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ PR structure validation failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "${{ needs.quality-checks.result }}" == "success" ]]; then
+            echo "- ✅ Quality checks passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ Quality checks failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.validate-pr.result }}" == "success" ]] && [[ "${{ needs.quality-checks.result }}" == "success" ]]; then
+            echo "### ✅ All checks passed! PR is ready for review." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Some checks failed. Please review and fix before merging." >> $GITHUB_STEP_SUMMARY
+          fi

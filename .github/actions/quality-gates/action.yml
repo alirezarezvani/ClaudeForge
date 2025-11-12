@@ -1,0 +1,278 @@
+name: 'ClaudeForge Quality Gates'
+description: 'Comprehensive quality validation for Python, Markdown, Bash scripts, and security'
+author: 'ClaudeForge'
+
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  python-version:
+    description: 'Python version to use for validation'
+    required: false
+    default: '3.11'
+  skip-python:
+    description: 'Skip Python validation'
+    required: false
+    default: 'false'
+  skip-markdown:
+    description: 'Skip Markdown validation'
+    required: false
+    default: 'false'
+  skip-bash:
+    description: 'Skip Bash script validation'
+    required: false
+    default: 'false'
+  skip-secrets:
+    description: 'Skip secret scanning'
+    required: false
+    default: 'false'
+
+outputs:
+  python-passed:
+    description: 'Whether Python validation passed'
+    value: ${{ steps.validate-python.outputs.passed }}
+  markdown-passed:
+    description: 'Whether Markdown validation passed'
+    value: ${{ steps.validate-markdown.outputs.passed }}
+  bash-passed:
+    description: 'Whether Bash validation passed'
+    value: ${{ steps.validate-bash.outputs.passed }}
+  secrets-passed:
+    description: 'Whether secret scanning passed'
+    value: ${{ steps.scan-secrets.outputs.passed }}
+  all-passed:
+    description: 'Whether all quality gates passed'
+    value: ${{ steps.summary.outputs.all-passed }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Python for validation
+      if: inputs.skip-python != 'true'
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install validation tools
+      if: inputs.skip-python != 'true'
+      shell: bash
+      run: |
+        pip install flake8 pylint mypy black --quiet
+
+    - name: Validate Python syntax and style
+      id: validate-python
+      if: inputs.skip-python != 'true'
+      shell: bash
+      run: |
+        echo "::group::Python Validation"
+        PASSED="true"
+
+        # Find all Python files
+        PYTHON_FILES=$(find skill -name "*.py" 2>/dev/null || echo "")
+
+        if [ -z "$PYTHON_FILES" ]; then
+          echo "ℹ️  No Python files found to validate"
+          echo "passed=true" >> $GITHUB_OUTPUT
+          echo "::endgroup::"
+          exit 0
+        fi
+
+        echo "📋 Found Python files:"
+        echo "$PYTHON_FILES"
+        echo ""
+
+        # Run flake8 (syntax and style)
+        echo "🔍 Running flake8 (syntax and style)..."
+        if flake8 skill/ --count --select=E9,F63,F7,F82 --show-source --statistics; then
+          echo "✅ Flake8 syntax check passed"
+        else
+          echo "::error::Flake8 found syntax errors"
+          PASSED="false"
+        fi
+
+        # Run flake8 for style (non-blocking)
+        echo ""
+        echo "🎨 Running flake8 (style warnings)..."
+        flake8 skill/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics || true
+
+        echo "passed=$PASSED" >> $GITHUB_OUTPUT
+        echo "::endgroup::"
+
+        if [ "$PASSED" = "false" ]; then
+          exit 1
+        fi
+
+    - name: Validate Markdown files
+      id: validate-markdown
+      if: inputs.skip-markdown != 'true'
+      shell: bash
+      run: |
+        echo "::group::Markdown Validation"
+        PASSED="true"
+
+        # Find all Markdown files
+        MD_FILES=$(find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*" 2>/dev/null || echo "")
+
+        if [ -z "$MD_FILES" ]; then
+          echo "ℹ️  No Markdown files found to validate"
+          echo "passed=true" >> $GITHUB_OUTPUT
+          echo "::endgroup::"
+          exit 0
+        fi
+
+        echo "📋 Found Markdown files: $(echo "$MD_FILES" | wc -l) files"
+        echo ""
+
+        # Basic validation checks
+        echo "🔍 Checking Markdown files..."
+
+        for file in $MD_FILES; do
+          # Check for empty files
+          if [ ! -s "$file" ]; then
+            echo "::warning file=$file::Empty Markdown file"
+          fi
+
+          # Check for broken relative links (basic check)
+          BROKEN_LINKS=$(grep -o '\[.*\]([^h].*\.md)' "$file" | sed 's/.*(\(.*\))/\1/' || true)
+          for link in $BROKEN_LINKS; do
+            LINK_PATH=$(dirname "$file")/"$link"
+            if [ ! -f "$LINK_PATH" ]; then
+              echo "::warning file=$file::Potentially broken link: $link"
+            fi
+          done
+        done
+
+        echo "✅ Markdown validation completed"
+        echo "passed=$PASSED" >> $GITHUB_OUTPUT
+        echo "::endgroup::"
+
+    - name: Validate Bash scripts
+      id: validate-bash
+      if: inputs.skip-bash != 'true'
+      shell: bash
+      run: |
+        echo "::group::Bash Script Validation"
+        PASSED="true"
+
+        # Find bash scripts
+        BASH_FILES=$(find . -name "*.sh" -not -path "./node_modules/*" -not -path "./.git/*" 2>/dev/null || echo "")
+
+        if [ -z "$BASH_FILES" ]; then
+          echo "ℹ️  No Bash scripts found to validate"
+          echo "passed=true" >> $GITHUB_OUTPUT
+          echo "::endgroup::"
+          exit 0
+        fi
+
+        echo "📋 Found Bash scripts:"
+        echo "$BASH_FILES"
+        echo ""
+
+        # Validate syntax
+        echo "🔍 Checking Bash syntax..."
+        for script in $BASH_FILES; do
+          echo "Checking: $script"
+          if bash -n "$script" 2>&1 | grep -v "warning:"; then
+            echo "  ✅ Syntax valid"
+          else
+            echo "::error file=$script::Bash syntax error detected"
+            PASSED="false"
+          fi
+        done
+
+        echo "passed=$PASSED" >> $GITHUB_OUTPUT
+        echo "::endgroup::"
+
+        if [ "$PASSED" = "false" ]; then
+          exit 1
+        fi
+
+    - name: Scan for secrets
+      id: scan-secrets
+      if: inputs.skip-secrets != 'true'
+      shell: bash
+      run: |
+        echo "::group::Secret Scanning"
+        PASSED="true"
+
+        echo "🔍 Scanning for hardcoded secrets..."
+
+        # Patterns to detect
+        PATTERNS=(
+          "api[_-]?key"
+          "api[_-]?secret"
+          "password\s*="
+          "token\s*="
+          "secret\s*="
+          "AWS_ACCESS_KEY"
+          "AWS_SECRET_KEY"
+          "GITHUB_TOKEN"
+          "ANTHROPIC_API_KEY"
+        )
+
+        # Files to scan (exclude binary, vendor, etc.)
+        FILES=$(find . -type f \( -name "*.py" -o -name "*.sh" -o -name "*.md" -o -name "*.yml" -o -name "*.yaml" \) \
+          -not -path "./node_modules/*" \
+          -not -path "./.git/*" \
+          -not -path "./venv/*" \
+          2>/dev/null || echo "")
+
+        for pattern in "${PATTERNS[@]}"; do
+          MATCHES=$(echo "$FILES" | xargs grep -niE "$pattern" 2>/dev/null || true)
+
+          if [ ! -z "$MATCHES" ]; then
+            # Filter out common false positives (examples, docs, variable declarations without values)
+            REAL_MATCHES=$(echo "$MATCHES" | grep -viE "(example|sample|placeholder|your_|xxx|<|template)" || true)
+
+            if [ ! -z "$REAL_MATCHES" ]; then
+              echo "::warning::Potential secret found with pattern: $pattern"
+              echo "$REAL_MATCHES"
+              echo ""
+            fi
+          fi
+        done
+
+        # Check for .env files committed
+        if find . -name ".env" -not -path "./.git/*" | grep -q ".env"; then
+          echo "::error::.env file found in repository. This should be in .gitignore!"
+          PASSED="false"
+        fi
+
+        if [ "$PASSED" = "true" ]; then
+          echo "✅ No obvious secrets detected"
+        fi
+
+        echo "passed=$PASSED" >> $GITHUB_OUTPUT
+        echo "::endgroup::"
+
+    - name: Quality Gates Summary
+      id: summary
+      shell: bash
+      run: |
+        echo "::group::Quality Gates Summary"
+
+        PYTHON_PASSED="${{ steps.validate-python.outputs.passed || 'true' }}"
+        MARKDOWN_PASSED="${{ steps.validate-markdown.outputs.passed || 'true' }}"
+        BASH_PASSED="${{ steps.validate-bash.outputs.passed || 'true' }}"
+        SECRETS_PASSED="${{ steps.scan-secrets.outputs.passed || 'true' }}"
+
+        ALL_PASSED="true"
+
+        echo "📊 Quality Gates Results:"
+        echo "   - Python: $PYTHON_PASSED"
+        echo "   - Markdown: $MARKDOWN_PASSED"
+        echo "   - Bash: $BASH_PASSED"
+        echo "   - Secrets: $SECRETS_PASSED"
+        echo ""
+
+        if [[ "$PYTHON_PASSED" == "false" ]] || [[ "$MARKDOWN_PASSED" == "false" ]] || \
+           [[ "$BASH_PASSED" == "false" ]] || [[ "$SECRETS_PASSED" == "false" ]]; then
+          ALL_PASSED="false"
+          echo "❌ Some quality gates failed"
+        else
+          echo "✅ All quality gates passed"
+        fi
+
+        echo "all-passed=$ALL_PASSED" >> $GITHUB_OUTPUT
+        echo "::endgroup::"

@@ -1,0 +1,322 @@
+name: 'PR Dev to Main (Release Gate)'
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  validate-release-pr:
+    name: Validate Release PR
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog validation
+
+      - name: Fork safety check
+        id: fork-check
+        uses: ./.github/actions/fork-safety
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate source branch
+        id: validate-branch
+        run: |
+          SOURCE_BRANCH="${{ github.head_ref }}"
+          echo "Source branch: $SOURCE_BRANCH"
+
+          # Only allow specific branches to merge to main
+          ALLOWED_PATTERNS="^(dev|release/.*|dependabot/.*)$"
+
+          if [[ "$SOURCE_BRANCH" =~ $ALLOWED_PATTERNS ]]; then
+            echo "✅ Source branch is allowed to merge to main"
+            echo "valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "::error::Only 'dev', 'release/*', or 'dependabot/*' branches can merge to main"
+            echo "::error::Current branch: $SOURCE_BRANCH"
+            echo "::error::Please merge to 'dev' first, then create a PR from 'dev' to 'main'"
+            echo "valid=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Check CHANGELOG.md updated
+        id: check-changelog
+        run: |
+          echo "Checking if CHANGELOG.md was updated..."
+
+          # Check if CHANGELOG.md exists
+          if [ ! -f "CHANGELOG.md" ]; then
+            echo "::warning::CHANGELOG.md not found"
+            echo "updated=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check if CHANGELOG.md was modified in this PR
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD)
+
+          if echo "$CHANGED_FILES" | grep -q "CHANGELOG.md"; then
+            echo "✅ CHANGELOG.md was updated"
+            echo "updated=true" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::CHANGELOG.md was not updated in this PR"
+            echo "::warning::Consider adding release notes to CHANGELOG.md"
+            echo "updated=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate version consistency
+        id: check-version
+        run: |
+          echo "Checking version consistency across files..."
+
+          # Extract version from CHANGELOG.md if it exists
+          if [ -f "CHANGELOG.md" ]; then
+            CHANGELOG_VERSION=$(grep -m 1 "^## \[" CHANGELOG.md | sed -n 's/.*\[\(.*\)\].*/\1/p' || echo "unknown")
+            echo "CHANGELOG.md version: $CHANGELOG_VERSION"
+          else
+            CHANGELOG_VERSION="unknown"
+          fi
+
+          # Extract version from install scripts if they contain version info
+          if grep -q "v1\." install.sh 2>/dev/null; then
+            INSTALLER_VERSION=$(grep -o "v[0-9]\+\.[0-9]\+\.[0-9]\+" install.sh | head -1 || echo "unknown")
+            echo "Installer version: $INSTALLER_VERSION"
+
+            if [ "$CHANGELOG_VERSION" != "unknown" ] && [ "$INSTALLER_VERSION" != "unknown" ]; then
+              if [ "v$CHANGELOG_VERSION" != "$INSTALLER_VERSION" ] && [ "$CHANGELOG_VERSION" != "$INSTALLER_VERSION" ]; then
+                echo "::warning::Version mismatch between CHANGELOG.md ($CHANGELOG_VERSION) and installer ($INSTALLER_VERSION)"
+              else
+                echo "✅ Version consistency validated"
+              fi
+            fi
+          fi
+
+          echo "consistent=true" >> $GITHUB_OUTPUT
+
+      - name: Production readiness checklist
+        run: |
+          echo "## 🚀 Production Readiness Checklist" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          # Source branch check
+          if [[ "${{ steps.validate-branch.outputs.valid }}" == "true" ]]; then
+            echo "| Source Branch | ✅ Valid |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Source Branch | ❌ Invalid |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # CHANGELOG check
+          if [[ "${{ steps.check-changelog.outputs.updated }}" == "true" ]]; then
+            echo "| CHANGELOG.md | ✅ Updated |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| CHANGELOG.md | ⚠️ Not Updated |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Version check
+          if [[ "${{ steps.check-version.outputs.consistent }}" == "true" ]]; then
+            echo "| Version Consistency | ✅ Consistent |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Version Consistency | ⚠️ Check Needed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on branch validation failure
+        if: failure() && steps.validate-branch.outputs.valid != 'true' && steps.fork-check.outputs.should-skip-writes != 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = `## ❌ Invalid Source Branch for Main
+
+            Only the following branches can merge to \`main\`:
+            - \`dev\` (standard release flow)
+            - \`release/*\` (release branches)
+            - \`dependabot/*\` (dependency updates)
+
+            **Current branch**: \`${{ github.head_ref }}\`
+
+            ### How to Fix
+
+            If this is a feature or fix branch:
+            1. Close this PR
+            2. Create a PR to \`dev\` instead
+            3. After merging to \`dev\`, create a PR from \`dev\` to \`main\`
+
+            If this is an emergency hotfix:
+            1. Create a \`release/x.x.x-hotfix\` branch
+            2. Make your changes there
+            3. Create PR from release branch to \`main\`
+
+            📚 See [BRANCHING_STRATEGY.md](../blob/main/docs/BRANCHING_STRATEGY.md) for details.`;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+  quality-checks:
+    name: Run Quality Checks
+    needs: validate-release-pr
+    uses: ./.github/workflows/reusable-pr-checks.yml
+    with:
+      python-version: '3.11'
+      skip-python: false
+      skip-markdown: false
+      skip-bash: false
+      skip-secrets: false
+
+  production-build:
+    name: Validate Production Build
+    needs: [validate-release-pr, quality-checks]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate installation scripts
+        run: |
+          echo "::group::Installation Script Validation"
+
+          # Check install.sh
+          if [ -f "install.sh" ]; then
+            echo "✅ install.sh exists"
+
+            # Check if executable
+            if [ -x "install.sh" ]; then
+              echo "✅ install.sh is executable"
+            else
+              echo "::warning::install.sh is not executable (chmod +x needed)"
+            fi
+
+            # Validate syntax
+            if bash -n install.sh; then
+              echo "✅ install.sh syntax valid"
+            else
+              echo "::error::install.sh has syntax errors"
+              exit 1
+            fi
+          else
+            echo "::error::install.sh not found"
+            exit 1
+          fi
+
+          # Check install.ps1
+          if [ -f "install.ps1" ]; then
+            echo "✅ install.ps1 exists"
+          else
+            echo "::warning::install.ps1 not found"
+          fi
+
+          echo "::endgroup::"
+
+      - name: Validate skill modules structure
+        run: |
+          echo "::group::Skill Modules Validation"
+
+          REQUIRED_FILES=(
+            "skill/analyzer.py"
+            "skill/validator.py"
+            "skill/generator.py"
+            "skill/template_selector.py"
+            "skill/workflow.py"
+          )
+
+          ALL_EXIST=true
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✅ $file exists"
+            else
+              echo "::error::$file not found"
+              ALL_EXIST=false
+            fi
+          done
+
+          if [ "$ALL_EXIST" = false ]; then
+            exit 1
+          fi
+
+          echo "::endgroup::"
+
+      - name: Validate documentation
+        run: |
+          echo "::group::Documentation Validation"
+
+          REQUIRED_DOCS=(
+            "README.md"
+            "CHANGELOG.md"
+            "LICENSE"
+            "docs/INSTALLATION.md"
+            "docs/QUICK_START.md"
+          )
+
+          ALL_EXIST=true
+          for doc in "${REQUIRED_DOCS[@]}"; do
+            if [ -f "$doc" ]; then
+              echo "✅ $doc exists"
+            else
+              echo "::warning::$doc not found"
+            fi
+          done
+
+          echo "::endgroup::"
+
+  release-summary:
+    name: Release Summary
+    needs: [validate-release-pr, quality-checks, production-build]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## 🚀 Release Gate Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.validate-release-pr.result }}" == "success" ]]; then
+            echo "- ✅ Release PR validated" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ Release PR validation failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "${{ needs.quality-checks.result }}" == "success" ]]; then
+            echo "- ✅ Quality checks passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ Quality checks failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "${{ needs.production-build.result }}" == "success" ]]; then
+            echo "- ✅ Production build validated" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ❌ Production build validation failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.validate-release-pr.result }}" == "success" ]] && \
+             [[ "${{ needs.quality-checks.result }}" == "success" ]] && \
+             [[ "${{ needs.production-build.result }}" == "success" ]]; then
+            echo "### ✅ All release gates passed! Ready for production." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "After merging, consider:" >> $GITHUB_STEP_SUMMARY
+            echo "1. Creating a GitHub release with `/release` command" >> $GITHUB_STEP_SUMMARY
+            echo "2. Updating documentation as needed" >> $GITHUB_STEP_SUMMARY
+            echo "3. Announcing the release to users" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Some release gates failed. Please review and fix before merging." >> $GITHUB_STEP_SUMMARY
+          fi

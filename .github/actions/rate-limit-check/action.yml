@@ -1,0 +1,138 @@
+name: 'Rate Limit Check'
+description: 'Circuit breaker to prevent GitHub API exhaustion'
+author: 'ClaudeForge'
+
+branding:
+  icon: 'activity'
+  color: 'orange'
+
+inputs:
+  github-token:
+    description: 'GitHub token for API access (usually secrets.GITHUB_TOKEN)'
+    required: true
+  minimum-remaining:
+    description: 'Minimum API calls remaining to proceed (default: 50)'
+    required: false
+    default: '50'
+  fail-on-limit:
+    description: 'Whether to fail the workflow if below threshold (default: false, just warns)'
+    required: false
+    default: 'false'
+
+outputs:
+  can-proceed:
+    description: 'Boolean indicating if enough API calls remain (true/false)'
+    value: ${{ steps.check-limit.outputs.can-proceed }}
+  remaining:
+    description: 'Number of API calls remaining in current window'
+    value: ${{ steps.check-limit.outputs.remaining }}
+  limit:
+    description: 'Total API rate limit for the token'
+    value: ${{ steps.check-limit.outputs.limit }}
+  used:
+    description: 'Number of API calls used in current window'
+    value: ${{ steps.check-limit.outputs.used }}
+  reset-time:
+    description: 'Unix timestamp when rate limit resets'
+    value: ${{ steps.check-limit.outputs.reset-time }}
+  reset-time-human:
+    description: 'Human-readable time when rate limit resets'
+    value: ${{ steps.check-limit.outputs.reset-time-human }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Check GitHub API Rate Limit
+      id: check-limit
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        MIN_REMAINING: ${{ inputs.minimum-remaining }}
+        FAIL_ON_LIMIT: ${{ inputs.fail-on-limit }}
+      run: |
+        echo "::group::GitHub API Rate Limit Check"
+
+        # Query rate limit status
+        echo "🔍 Querying GitHub API rate limit status..."
+        RATE_LIMIT_JSON=$(gh api rate_limit)
+
+        # Extract core API rate limit info
+        REMAINING=$(echo "$RATE_LIMIT_JSON" | jq -r '.resources.core.remaining')
+        LIMIT=$(echo "$RATE_LIMIT_JSON" | jq -r '.resources.core.limit')
+        USED=$(echo "$RATE_LIMIT_JSON" | jq -r '.resources.core.used')
+        RESET_TIMESTAMP=$(echo "$RATE_LIMIT_JSON" | jq -r '.resources.core.reset')
+
+        # Convert reset timestamp to human-readable format
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+          # macOS date command
+          RESET_TIME_HUMAN=$(date -r "$RESET_TIMESTAMP" '+%Y-%m-%d %H:%M:%S %Z')
+        else
+          # Linux date command
+          RESET_TIME_HUMAN=$(date -d "@$RESET_TIMESTAMP" '+%Y-%m-%d %H:%M:%S %Z')
+        fi
+
+        # Calculate percentage used
+        PERCENT_USED=$(echo "scale=1; ($USED * 100) / $LIMIT" | bc)
+
+        # Determine if we can proceed
+        CAN_PROCEED="false"
+        if [[ $REMAINING -ge $MIN_REMAINING ]]; then
+          CAN_PROCEED="true"
+        fi
+
+        # Set outputs
+        echo "can-proceed=$CAN_PROCEED" >> $GITHUB_OUTPUT
+        echo "remaining=$REMAINING" >> $GITHUB_OUTPUT
+        echo "limit=$LIMIT" >> $GITHUB_OUTPUT
+        echo "used=$USED" >> $GITHUB_OUTPUT
+        echo "reset-time=$RESET_TIMESTAMP" >> $GITHUB_OUTPUT
+        echo "reset-time-human=$RESET_TIME_HUMAN" >> $GITHUB_OUTPUT
+
+        # Display results
+        echo ""
+        echo "📊 Rate Limit Status:"
+        echo "   - Limit: $LIMIT"
+        echo "   - Used: $USED ($PERCENT_USED%)"
+        echo "   - Remaining: $REMAINING"
+        echo "   - Minimum Required: $MIN_REMAINING"
+        echo "   - Reset Time: $RESET_TIME_HUMAN"
+        echo ""
+
+        # Status indicators
+        if [[ $CAN_PROCEED == "true" ]]; then
+          echo "✅ Sufficient API calls remaining ($REMAINING >= $MIN_REMAINING)"
+        else
+          echo "⚠️  Rate limit too low ($REMAINING < $MIN_REMAINING)"
+          echo "🕐 API limit will reset at: $RESET_TIME_HUMAN"
+
+          # Calculate wait time
+          CURRENT_TIME=$(date +%s)
+          WAIT_SECONDS=$((RESET_TIMESTAMP - CURRENT_TIME))
+          WAIT_MINUTES=$((WAIT_SECONDS / 60))
+
+          if [[ $WAIT_SECONDS -gt 0 ]]; then
+            echo "⏱️  Wait time: ~$WAIT_MINUTES minutes"
+          else
+            echo "⏱️  Rate limit should reset momentarily"
+          fi
+        fi
+
+        echo "::endgroup::"
+
+        # Handle warnings and failures
+        if [[ $CAN_PROCEED == "false" ]]; then
+          if [[ $FAIL_ON_LIMIT == "true" ]]; then
+            echo "::error::GitHub API rate limit too low ($REMAINING remaining, need $MIN_REMAINING). Failing workflow."
+            exit 1
+          else
+            echo "::warning::GitHub API rate limit too low ($REMAINING remaining, need $MIN_REMAINING). Workflow may fail or be rate-limited."
+          fi
+        fi
+
+    - name: Rate Limit Summary
+      shell: bash
+      if: steps.check-limit.outputs.can-proceed == 'false'
+      run: |
+        echo "::notice::⚠️ Low API Rate Limit Detected"
+        echo "::notice::Remaining: ${{ steps.check-limit.outputs.remaining }} / ${{ steps.check-limit.outputs.limit }}"
+        echo "::notice::Resets at: ${{ steps.check-limit.outputs.reset-time-human }}"

@@ -1,0 +1,270 @@
+name: 'Create Release'
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.1.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        default: false
+        type: boolean
+      draft:
+        description: 'Create as draft'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: read
+  issues: write
+
+jobs:
+  validate-release:
+    name: Validate Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate version format
+        id: validate-version
+        run: |
+          VERSION="${{ inputs.version }}"
+          echo "Validating version: $VERSION"
+
+          # Check semantic versioning format
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "✅ Version format is valid"
+            echo "valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "::error::Invalid version format: $VERSION"
+            echo "::error::Must be semantic versioning (e.g., 1.1.0 or 1.1.0-beta.1)"
+            echo "valid=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Check if tag already exists
+        id: check-tag
+        run: |
+          VERSION="${{ inputs.version }}"
+          TAG="v$VERSION"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $TAG already exists"
+            echo "::error::Please use a different version number"
+            echo "exists=true" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✅ Tag $TAG is available"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate CHANGELOG.md
+        id: check-changelog
+        run: |
+          VERSION="${{ inputs.version }}"
+
+          if [ ! -f "CHANGELOG.md" ]; then
+            echo "::warning::CHANGELOG.md not found"
+            echo "updated=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check if version is mentioned in CHANGELOG
+          if grep -q "\[$VERSION\]" CHANGELOG.md || grep -q "## $VERSION" CHANGELOG.md; then
+            echo "✅ Version $VERSION found in CHANGELOG.md"
+            echo "updated=true" >> $GITHUB_OUTPUT
+          else
+            echo "::warning::Version $VERSION not found in CHANGELOG.md"
+            echo "::warning::Consider adding release notes before creating release"
+            echo "updated=false" >> $GITHUB_OUTPUT
+          fi
+
+  create-release:
+    name: Create GitHub Release
+    needs: validate-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rate limit check
+        uses: ./.github/actions/rate-limit-check
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          minimum-remaining: 100
+
+      - name: Extract release notes from CHANGELOG
+        id: extract-notes
+        run: |
+          VERSION="${{ inputs.version }}"
+
+          if [ ! -f "CHANGELOG.md" ]; then
+            echo "CHANGELOG.md not found, using default release notes"
+            NOTES="Release v$VERSION
+
+See the full changelog at https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md"
+          else
+            # Try to extract notes for this version
+            # Look for section between [VERSION] and next [VERSION] or end of file
+            NOTES=$(awk "/\[$VERSION\]|## $VERSION/,/^## \[|^## [0-9]/" CHANGELOG.md | tail -n +2 | head -n -1)
+
+            if [ -z "$NOTES" ]; then
+              echo "No specific notes found for $VERSION in CHANGELOG.md"
+              NOTES="Release v$VERSION
+
+See the full changelog at https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md"
+            else
+              echo "✅ Extracted release notes from CHANGELOG.md"
+            fi
+          fi
+
+          # Save to file for GitHub release
+          echo "$NOTES" > /tmp/release-notes.md
+          echo "notes-file=/tmp/release-notes.md" >> $GITHUB_OUTPUT
+
+      - name: Get commits since last release
+        id: get-commits
+        run: |
+          # Get the last release tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous tags found, getting all commits"
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          else
+            echo "Getting commits since $LAST_TAG"
+            COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          fi
+
+          echo "$COMMITS" > /tmp/commits.txt
+          echo "commits-file=/tmp/commits.txt" >> $GITHUB_OUTPUT
+
+      - name: Create release notes
+        run: |
+          VERSION="${{ inputs.version }}"
+          TAG="v$VERSION"
+
+          # Combine CHANGELOG notes with commit list
+          cat /tmp/release-notes.md > /tmp/final-notes.md
+
+          echo "" >> /tmp/final-notes.md
+          echo "---" >> /tmp/final-notes.md
+          echo "" >> /tmp/final-notes.md
+          echo "## 📦 Installation" >> /tmp/final-notes.md
+          echo "" >> /tmp/final-notes.md
+          echo "### One-Line Install (Recommended)" >> /tmp/final-notes.md
+          echo '```bash' >> /tmp/final-notes.md
+          echo "curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | bash" >> /tmp/final-notes.md
+          echo '```' >> /tmp/final-notes.md
+          echo "" >> /tmp/final-notes.md
+          echo "### Manual Install" >> /tmp/final-notes.md
+          echo '```bash' >> /tmp/final-notes.md
+          echo "wget https://github.com/${{ github.repository }}/archive/refs/tags/$TAG.tar.gz" >> /tmp/final-notes.md
+          echo "tar -xzf $TAG.tar.gz" >> /tmp/final-notes.md
+          echo "cd ClaudeForge-${VERSION}" >> /tmp/final-notes.md
+          echo "./install.sh" >> /tmp/final-notes.md
+          echo '```' >> /tmp/final-notes.md
+          echo "" >> /tmp/final-notes.md
+          echo "📚 **Documentation**: https://github.com/${{ github.repository }}/blob/main/docs/INSTALLATION.md" >> /tmp/final-notes.md
+          echo "" >> /tmp/final-notes.md
+
+          if [ -s /tmp/commits.txt ]; then
+            echo "## 📝 Commits" >> /tmp/final-notes.md
+            echo "" >> /tmp/final-notes.md
+            cat /tmp/commits.txt >> /tmp/final-notes.md
+            echo "" >> /tmp/final-notes.md
+          fi
+
+          echo "---" >> /tmp/final-notes.md
+          echo "" >> /tmp/final-notes.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md" >> /tmp/final-notes.md
+
+      - name: Create GitHub Release
+        id: create-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          TAG="v$VERSION"
+          DRAFT_FLAG=""
+          PRERELEASE_FLAG=""
+
+          if [[ "${{ inputs.draft }}" == "true" ]]; then
+            DRAFT_FLAG="--draft"
+          fi
+
+          if [[ "${{ inputs.prerelease }}" == "true" ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+
+          gh release create "$TAG" \
+            --title "ClaudeForge $TAG" \
+            --notes-file /tmp/final-notes.md \
+            $DRAFT_FLAG \
+            $PRERELEASE_FLAG
+
+          echo "✅ Release $TAG created successfully"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Update installation script references
+        if: inputs.prerelease == false && inputs.draft == false
+        run: |
+          VERSION="${{ inputs.version }}"
+          echo "::notice::Consider updating installer script to reference $VERSION"
+          echo "::notice::Files to update: install.sh, install.ps1 (if they contain version references)"
+
+  release-summary:
+    name: Release Summary
+    needs: [validate-release, create-release]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          VERSION="${{ inputs.version }}"
+          TAG="v$VERSION"
+
+          echo "## 🎉 Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.validate-release.result }}" == "success" ]] && \
+             [[ "${{ needs.create-release.result }}" == "success" ]]; then
+            echo "### ✅ Release $TAG Created Successfully!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🔗 **Release URL**: https://github.com/${{ github.repository }}/releases/tag/$TAG" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "1. ✅ Release created on GitHub" >> $GITHUB_STEP_SUMMARY
+
+            if [[ "${{ inputs.draft }}" == "true" ]]; then
+              echo "2. ⚠️ Release is in **DRAFT** mode - publish when ready" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            if [[ "${{ inputs.prerelease }}" == "true" ]]; then
+              echo "3. ⚠️ Marked as **PRE-RELEASE**" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "4. Consider announcing the release:" >> $GITHUB_STEP_SUMMARY
+            echo "   - Update README.md badges if needed" >> $GITHUB_STEP_SUMMARY
+            echo "   - Post announcement in Discussions" >> $GITHUB_STEP_SUMMARY
+            echo "   - Share on social media if applicable" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Release Creation Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          fi

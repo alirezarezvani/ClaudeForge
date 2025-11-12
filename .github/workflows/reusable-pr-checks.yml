@@ -1,0 +1,127 @@
+name: 'Reusable PR Quality Checks'
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to use'
+        required: false
+        default: '3.11'
+        type: string
+      skip-python:
+        description: 'Skip Python validation'
+        required: false
+        default: false
+        type: boolean
+      skip-markdown:
+        description: 'Skip Markdown validation'
+        required: false
+        default: false
+        type: boolean
+      skip-bash:
+        description: 'Skip Bash validation'
+        required: false
+        default: false
+        type: boolean
+      skip-secrets:
+        description: 'Skip secret scanning'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Fork safety check
+        id: fork-check
+        uses: ./.github/actions/fork-safety
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Rate limit check
+        uses: ./.github/actions/rate-limit-check
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          minimum-remaining: 50
+
+      - name: Run quality gates
+        id: quality
+        uses: ./.github/actions/quality-gates
+        with:
+          python-version: ${{ inputs.python-version }}
+          skip-python: ${{ inputs.skip-python }}
+          skip-markdown: ${{ inputs.skip-markdown }}
+          skip-bash: ${{ inputs.skip-bash }}
+          skip-secrets: ${{ inputs.skip-secrets }}
+
+      - name: Quality check summary
+        run: |
+          echo "## 🔍 Quality Gates Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          PYTHON_PASSED="${{ steps.quality.outputs.python-passed }}"
+          MARKDOWN_PASSED="${{ steps.quality.outputs.markdown-passed }}"
+          BASH_PASSED="${{ steps.quality.outputs.bash-passed }}"
+          SECRETS_PASSED="${{ steps.quality.outputs.secrets-passed }}"
+          ALL_PASSED="${{ steps.quality.outputs.all-passed }}"
+
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ inputs.skip-python }}" != "true" ]]; then
+            if [[ "$PYTHON_PASSED" == "true" ]]; then
+              echo "| Python Syntax | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Python Syntax | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          if [[ "${{ inputs.skip-markdown }}" != "true" ]]; then
+            if [[ "$MARKDOWN_PASSED" == "true" ]]; then
+              echo "| Markdown Lint | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Markdown Lint | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          if [[ "${{ inputs.skip-bash }}" != "true" ]]; then
+            if [[ "$BASH_PASSED" == "true" ]]; then
+              echo "| Bash Scripts | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Bash Scripts | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          if [[ "${{ inputs.skip-secrets }}" != "true" ]]; then
+            if [[ "$SECRETS_PASSED" == "true" ]]; then
+              echo "| Secret Scan | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| Secret Scan | ⚠️ Warnings |" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "$ALL_PASSED" == "true" ]]; then
+            echo "### ✅ All quality gates passed!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Some quality gates failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please review the errors above and fix them before merging." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if quality gates failed
+        if: steps.quality.outputs.all-passed != 'true'
+        run: |
+          echo "::error::Quality gates failed. Please review and fix the issues."
+          exit 1

@@ -80,14 +80,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR_NUMBER="${{ github.event.pull_request.number }}"
-          PR_BODY="${{ github.event.pull_request.body }}"
 
           echo "Checking for linked issues in PR #$PR_NUMBER"
+
+          # Write PR body to temp file to handle multi-line content safely
+          cat > /tmp/pr_body.txt << 'EOF'
+          ${{ github.event.pull_request.body }}
+          EOF
 
           # Check for keywords like "Closes", "Fixes", "Resolves", "Relates to"
           ISSUE_KEYWORDS="Closes|Fixes|Resolves|Relates to|Ref|References"
 
-          if echo "$PR_BODY" | grep -qiE "($ISSUE_KEYWORDS) #[0-9]+"; then
+          if grep -qiE "($ISSUE_KEYWORDS) #[0-9]+" /tmp/pr_body.txt; then
             echo "✅ Found linked issue(s) in PR body"
             echo "has-linked-issues=true" >> $GITHUB_OUTPUT
           else

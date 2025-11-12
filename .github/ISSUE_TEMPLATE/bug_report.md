@@ -29,7 +29,9 @@ What actually happened.
 - **OS:** [e.g., macOS 13.5, Windows 11, Ubuntu 22.04]
 - **Claude Code Version:** [e.g., 2.1.0]
 - **ClaudeForge Version:** [e.g., 1.0.0]
-- **Installation Method:** [user-level / project-level]
+- **Python Version:** [e.g., 3.11.6] (if relevant)
+- **Installation Method:** [curl install / local install / user-level / project-level]
+- **Component:** [installer / skill / command / agent / docs]
 
 ## Additional Context
 

@@ -1,0 +1,32 @@
+# ClaudeForge Code Owners
+# These owners will be automatically requested for review when someone opens a PR that modifies code in these areas
+
+# Default owner for everything in the repo
+* @alirezarezvani
+
+# GitHub workflows and actions
+/.github/ @alirezarezvani
+
+# Installation scripts (critical for users)
+/install.sh @alirezarezvani
+/install.ps1 @alirezarezvani
+
+# Core skill modules
+/skill/*.py @alirezarezvani
+
+# Slash commands
+/command/ @alirezarezvani
+
+# Guardian agent
+/agent/ @alirezarezvani
+
+# Documentation (important for user experience)
+/docs/ @alirezarezvani
+/README.md @alirezarezvani
+/CHANGELOG.md @alirezarezvani
+
+# Quality hooks
+/hooks/ @alirezarezvani
+
+# Setup scripts
+/setup/ @alirezarezvani

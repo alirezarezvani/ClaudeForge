@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # Python dependencies (skill modules)
+  - package-ecosystem: "pip"
+    directory: "/skill"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    labels:
+      - "dependencies"
+      - "python"
+      - "component: skill"
+    commit-message:
+      prefix: "build(deps)"
+      include: "scope"
+    open-pull-requests-limit: 5
+    # Group minor and patch updates together
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "10:00"
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "component: ci/cd"
+    commit-message:
+      prefix: "ci(deps)"
+    open-pull-requests-limit: 5

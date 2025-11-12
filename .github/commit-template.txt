@@ -1,0 +1,65 @@
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# <footer>
+
+# === Conventional Commits Format ===
+#
+# TYPE (required):
+#   feat:     A new feature
+#   fix:      A bug fix
+#   docs:     Documentation only changes
+#   style:    Code style changes (formatting, missing semi-colons, etc.)
+#   refactor: Code changes that neither fix bugs nor add features
+#   perf:     Performance improvements
+#   test:     Adding or updating tests
+#   build:    Changes to build system or dependencies
+#   ci:       Changes to CI/CD configuration files and scripts
+#   chore:    Other changes that don't modify src or test files
+#   revert:   Reverts a previous commit
+#
+# SCOPE (optional):
+#   installer, skill, command, agent, docs, ci, workflows, etc.
+#
+# SUBJECT (required):
+#   - Use imperative mood: "add" not "added" or "adds"
+#   - Don't capitalize first letter
+#   - No period at the end
+#   - Maximum 50 characters
+#
+# BODY (optional):
+#   - Explain what and why vs. how
+#   - Wrap at 72 characters
+#   - Use imperative mood
+#
+# FOOTER (optional):
+#   - Reference issues: Closes #123, Fixes #456
+#   - Breaking changes: BREAKING CHANGE: description
+#
+# === Examples ===
+#
+# feat(installer): add Windows PowerShell support
+#
+# Add install.ps1 script for Windows users with equivalent
+# functionality to install.sh bash script.
+#
+# Closes #42
+#
+# ---
+#
+# fix(skill): correct Python syntax validation
+#
+# Fix flake8 configuration to properly detect syntax errors
+# in skill modules. Previous config was too permissive.
+#
+# Fixes #156
+#
+# ---
+#
+# docs: update installation guide with troubleshooting
+#
+# Add common installation issues and solutions to
+# docs/TROUBLESHOOTING.md based on user feedback.
+#
+# Relates to #78, #82, #91

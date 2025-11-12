@@ -2,7 +2,7 @@
 name: Feature Request
 about: Suggest a new feature or enhancement for ClaudeForge
 title: '[FEATURE] '
-labels: enhancement
+labels: enhancement, status: needs discussion
 assignees: ''
 ---
 

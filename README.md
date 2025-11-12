@@ -5,6 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/alirezarezvani/ClaudeForge/releases)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-2.0%2B-purple.svg)](https://claude.com/claude-code)
+[![CI/CD](https://img.shields.io/badge/CI/CD-GitHub_Actions-2088FF.svg)](https://github.com/alirezarezvani/ClaudeForge/actions)
+[![Quality Gates](https://img.shields.io/badge/Quality_Gates-Automated-success.svg)](docs/GITHUB_WORKFLOWS.md)
 
 ClaudeForge is a comprehensive toolkit that eliminates the tedious process of manually creating and maintaining CLAUDE.md files. With intelligent analysis, automated generation, and background maintenance, your CLAUDE.md files stay perfectly synchronized with your codebase.
 
@@ -148,6 +150,8 @@ That's it! The command will:
 | [Quick Start Guide](docs/QUICK_START.md) | 5-minute tutorial to get started |
 | [Installation Guide](docs/INSTALLATION.md) | Detailed installation instructions and troubleshooting |
 | [Architecture Overview](docs/ARCHITECTURE.md) | How components work together |
+| [GitHub Workflows](docs/GITHUB_WORKFLOWS.md) | CI/CD automation and quality gates |
+| [Branching Strategy](docs/BRANCHING_STRATEGY.md) | Branch flow and protection rules |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Common issues and solutions |
 | [Contributing Guide](docs/CONTRIBUTING.md) | How to contribute to ClaudeForge |
 

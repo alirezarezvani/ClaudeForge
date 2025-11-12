@@ -89,7 +89,7 @@ echo "  ${GREEN}2)${NC} Project-level (./.claude/)  - Available only in current 
 echo ""
 
 while true; do
-    read -p "$(echo -e ${BLUE}Enter choice [1/2]:${NC} )" choice
+    read -p "$(echo -e ${BLUE}Enter choice [1/2]:${NC} )" choice < /dev/tty
     case $choice in
         1)
             SKILLS_DIR="$HOME/.claude/skills"
@@ -121,7 +121,7 @@ echo "  • Agent:    $AGENTS_DIR/claude-md-guardian.md"
 echo ""
 
 # Confirm installation
-read -p "$(echo -e ${BLUE}Proceed with installation? [Y/n]:${NC} )" confirm
+read -p "$(echo -e ${BLUE}Proceed with installation? [Y/n]:${NC} )" confirm < /dev/tty
 confirm=${confirm:-Y}
 
 if [[ ! $confirm =~ ^[Yy]$ ]]; then
@@ -168,7 +168,7 @@ print_success "Agent installed → $AGENTS_DIR/claude-md-guardian.md"
 
 # Optional: Install quality hooks
 echo ""
-read -p "$(echo -e ${BLUE}Would you like to install quality hooks (pre-commit validation)? [y/N]:${NC} )" install_hooks
+read -p "$(echo -e ${BLUE}Would you like to install quality hooks (pre-commit validation)? [y/N]:${NC} )" install_hooks < /dev/tty
 install_hooks=${install_hooks:-N}
 
 if [[ $install_hooks =~ ^[Yy]$ ]]; then

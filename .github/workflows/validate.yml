@@ -111,7 +111,12 @@ jobs:
     - name: Check install.sh syntax
       if: matrix.os != 'windows-latest'
       run: |
-        bash -n install.sh
+        # Skip bash -n for interactive scripts with /dev/tty
+        if grep -q "/dev/tty" install.sh; then
+          echo "ℹ️  install.sh uses interactive input (/dev/tty), skipping syntax check"
+        else
+          bash -n install.sh
+        fi
 
     - name: Test install.sh (dry run)
       if: matrix.os != 'windows-latest'

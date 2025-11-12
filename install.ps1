@@ -43,6 +43,8 @@ Write-Host ""
 
 # Check if running from correct directory or need to download
 $RemoteInstall = $false
+$OriginalDir = Get-Location
+
 if (-not (Test-Path "skill") -or -not (Test-Path "command") -or -not (Test-Path "agent")) {
     Write-Info "Installing from GitHub..."
     $RemoteInstall = $true
@@ -109,9 +111,15 @@ while (-not $validChoice) {
             $validChoice = $true
         }
         "2" {
-            $skillsDir = ".\.claude\skills"
-            $commandsDir = ".\.claude\commands"
-            $agentsDir = ".\.claude\agents"
+            if ($RemoteInstall) {
+                $skillsDir = Join-Path $OriginalDir ".claude\skills"
+                $commandsDir = Join-Path $OriginalDir ".claude\commands"
+                $agentsDir = Join-Path $OriginalDir ".claude\agents"
+            } else {
+                $skillsDir = ".\.claude\skills"
+                $commandsDir = ".\.claude\commands"
+                $agentsDir = ".\.claude\agents"
+            }
             $scope = "project-level"
             Write-Success "Installing at project-level (current project only)"
             $validChoice = $true
@@ -191,9 +199,14 @@ if ([string]::IsNullOrEmpty($installHooks)) { $installHooks = "N" }
 if ($installHooks -match "^[Yy]$") {
     if ($scope -eq "project-level") {
         Write-Info "Installing quality hooks..."
-        New-Item -ItemType Directory -Path ".claude\hooks" -Force | Out-Null
-        Copy-Item -Path "hooks\pre-commit.sh" -Destination ".claude\hooks\" -Force
-        Write-Success "Quality hooks installed → .claude\hooks\"
+        if ($RemoteInstall) {
+            $hooksDir = Join-Path $OriginalDir ".claude\hooks"
+        } else {
+            $hooksDir = ".claude\hooks"
+        }
+        New-Item -ItemType Directory -Path $hooksDir -Force | Out-Null
+        Copy-Item -Path "hooks\pre-commit.sh" -Destination "$hooksDir\" -Force
+        Write-Success "Quality hooks installed → $hooksDir\"
     } else {
         Write-Warning "Quality hooks can only be installed at project-level"
         Write-Info "Run installer with option 2 in your project directory"

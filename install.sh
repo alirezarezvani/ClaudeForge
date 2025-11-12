@@ -43,6 +43,8 @@ echo ""
 
 # Check if running from correct directory or need to download
 REMOTE_INSTALL=false
+ORIGINAL_DIR=$(pwd)
+
 if [ ! -d "skill" ] || [ ! -d "command" ] || [ ! -d "agent" ]; then
     print_info "Installing from GitHub..."
     REMOTE_INSTALL=true
@@ -100,9 +102,15 @@ while true; do
             break
             ;;
         2)
-            SKILLS_DIR="./.claude/skills"
-            COMMANDS_DIR="./.claude/commands"
-            AGENTS_DIR="./.claude/agents"
+            if [ "$REMOTE_INSTALL" = true ]; then
+                SKILLS_DIR="$ORIGINAL_DIR/.claude/skills"
+                COMMANDS_DIR="$ORIGINAL_DIR/.claude/commands"
+                AGENTS_DIR="$ORIGINAL_DIR/.claude/agents"
+            else
+                SKILLS_DIR="./.claude/skills"
+                COMMANDS_DIR="./.claude/commands"
+                AGENTS_DIR="./.claude/agents"
+            fi
             SCOPE="project-level"
             print_success "Installing at project-level (current project only)"
             break
@@ -174,10 +182,15 @@ install_hooks=${install_hooks:-N}
 if [[ $install_hooks =~ ^[Yy]$ ]]; then
     if [ "$SCOPE" == "project-level" ]; then
         print_info "Installing quality hooks..."
-        mkdir -p .claude/hooks
-        cp hooks/pre-commit.sh .claude/hooks/
-        chmod +x .claude/hooks/pre-commit.sh
-        print_success "Quality hooks installed → .claude/hooks/"
+        if [ "$REMOTE_INSTALL" = true ]; then
+            HOOKS_DIR="$ORIGINAL_DIR/.claude/hooks"
+        else
+            HOOKS_DIR=".claude/hooks"
+        fi
+        mkdir -p "$HOOKS_DIR"
+        cp hooks/pre-commit.sh "$HOOKS_DIR/"
+        chmod +x "$HOOKS_DIR/pre-commit.sh"
+        print_success "Quality hooks installed → $HOOKS_DIR/"
     else
         print_warning "Quality hooks can only be installed at project-level"
         print_info "Run installer with option 2 in your project directory"

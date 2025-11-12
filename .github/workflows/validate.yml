@@ -1,0 +1,162 @@
+name: Validate ClaudeForge
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  validate-python:
+    name: Validate Python Modules
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Check Python syntax
+      run: |
+        python3 -m py_compile skill/analyzer.py
+        python3 -m py_compile skill/validator.py
+        python3 -m py_compile skill/generator.py
+        python3 -m py_compile skill/template_selector.py
+        python3 -m py_compile skill/workflow.py
+
+    - name: Test module imports
+      run: |
+        cd skill
+        python3 -c "from analyzer import CLAUDEMDAnalyzer; print('analyzer.py: OK')"
+        python3 -c "from validator import BestPracticesValidator; print('validator.py: OK')"
+        python3 -c "from generator import ContentGenerator; print('generator.py: OK')"
+        python3 -c "from template_selector import TemplateSelector; print('template_selector.py: OK')"
+        python3 -c "from workflow import InitializationWorkflow; print('workflow.py: OK')"
+
+  validate-structure:
+    name: Validate Repository Structure
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Check required files
+      run: |
+        test -f README.md || exit 1
+        test -f CHANGELOG.md || exit 1
+        test -f LICENSE || exit 1
+        test -f CLAUDE.md || exit 1
+        test -f install.sh || exit 1
+        test -f install.ps1 || exit 1
+
+    - name: Check required directories
+      run: |
+        test -d skill || exit 1
+        test -d command || exit 1
+        test -d agent || exit 1
+        test -d docs || exit 1
+        test -d examples || exit 1
+
+    - name: Check skill files
+      run: |
+        test -f skill/SKILL.md || exit 1
+        test -f skill/analyzer.py || exit 1
+        test -f skill/validator.py || exit 1
+        test -f skill/generator.py || exit 1
+        test -f skill/template_selector.py || exit 1
+        test -f skill/workflow.py || exit 1
+
+    - name: Check command files
+      run: |
+        test -f command/enhance-claude-md.md || exit 1
+
+    - name: Check agent files
+      run: |
+        test -f agent/claude-md-guardian.md || exit 1
+
+  validate-documentation:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Check docs directory
+      run: |
+        test -f docs/INSTALLATION.md || exit 1
+        test -f docs/QUICK_START.md || exit 1
+        test -f docs/ARCHITECTURE.md || exit 1
+        test -f docs/TROUBLESHOOTING.md || exit 1
+        test -f docs/CONTRIBUTING.md || exit 1
+
+    - name: Check examples directory
+      run: |
+        test -f examples/basic-usage.md || exit 1
+        test -f examples/modular-setup.md || exit 1
+        test -f examples/integration-examples.md || exit 1
+
+  validate-installers:
+    name: Validate Installer Scripts
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Check install.sh syntax
+      if: matrix.os != 'windows-latest'
+      run: |
+        bash -n install.sh
+
+    - name: Test install.sh (dry run)
+      if: matrix.os != 'windows-latest'
+      run: |
+        # Create temporary directory
+        mkdir -p /tmp/test-claude
+        export HOME=/tmp/test-claude
+
+        # Test script runs without errors
+        # (Don't actually install, just check syntax and structure)
+        grep -q "claudeforge-skill" install.sh || exit 1
+        grep -q "enhance-claude-md" install.sh || exit 1
+        grep -q "claude-md-guardian" install.sh || exit 1
+
+  lint-markdown:
+    name: Lint Markdown Files
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Check markdown files exist
+      run: |
+        find . -name "*.md" -type f | wc -l
+
+    - name: Basic markdown validation
+      run: |
+        # Check for broken reference-style links
+        ! grep -r "\[.*\]\[.*\]" --include="*.md" . | grep -v "http" | grep -v ".md"
+
+  security-check:
+    name: Security Checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Check for hardcoded secrets
+      run: |
+        # Check for common secret patterns
+        ! grep -r "API_KEY\s*=" . --include="*.py" --include="*.md"
+        ! grep -r "password\s*=" . --include="*.py" --include="*.md"
+        ! grep -r "token\s*=" . --include="*.py" --include="*.md"
+
+    - name: Check for TODO/FIXME
+      run: |
+        # Warn about TODO/FIXME (not fail)
+        grep -r "TODO\|FIXME" . --include="*.py" --include="*.md" || true

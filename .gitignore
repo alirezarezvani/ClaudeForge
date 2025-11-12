@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+ENV/
+env/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Claude Code
+.claude/cache/
+.claude/logs/
+.claude/temp/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Distribution
+*.zip
+*.tar.gz
+*.dmg
+*.exe
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+Thumbs.db
+.DS_Store
+.Spotlight-V100
+.Trashes
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+.#*
+\#*#
+
+# Node modules (if any testing added)
+node_modules/
+
+# Backup files from installer
+*.backup.*
+
+# Legacy directories (old structure, now reorganized)
+claude-md-enhancer/
+slash-commands-enhance-claude-md/
+subagent-claude-md-guardian/
+
+# Optional project files
+PROJECT_SUMMARY.md

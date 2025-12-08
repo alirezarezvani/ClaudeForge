@@ -129,7 +129,7 @@ echo "  • Agent:    $AGENTS_DIR/claude-md-guardian.md"
 echo ""
 
 # Confirm installation
-read -p "$(echo -e ${BLUE}Proceed with installation? [Y/n]:${NC} )" confirm < /dev/tty
+read -p "$(echo -e "${BLUE}Proceed with installation? [Y/n]:${NC}")" confirm < /dev/tty
 confirm=${confirm:-Y}
 
 if [[ ! $confirm =~ ^[Yy]$ ]]; then
@@ -176,7 +176,7 @@ print_success "Agent installed → $AGENTS_DIR/claude-md-guardian.md"
 
 # Optional: Install quality hooks
 echo ""
-read -p "$(echo -e ${BLUE}Would you like to install quality hooks (pre-commit validation)? [y/N]:${NC} )" install_hooks < /dev/tty
+read -p "$(echo -e "${BLUE}Would you like to install quality hooks (pre-commit validation)? [y/N]:${NC}")" install_hooks < /dev/tty
 install_hooks=${install_hooks:-N}
 
 if [[ $install_hooks =~ ^[Yy]$ ]]; then

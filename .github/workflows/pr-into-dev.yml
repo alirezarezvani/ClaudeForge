@@ -27,33 +27,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Validate branch name
-        id: branch-name
-        run: |
-          BRANCH_NAME="${{ github.head_ref }}"
-          echo "Branch name: $BRANCH_NAME"
-
-          # Valid prefixes for dev branch
-          VALID_PREFIXES="feature/ fix/ hotfix/ test/ refactor/ docs/"
-
-          VALID=false
-          for prefix in $VALID_PREFIXES; do
-            if [[ "$BRANCH_NAME" == $prefix* ]]; then
-              VALID=true
-              echo "✅ Branch name is valid (starts with $prefix)"
-              break
-            fi
-          done
-
-          if [ "$VALID" = false ]; then
-            echo "::error::Invalid branch name: $BRANCH_NAME"
-            echo "::error::Branch must start with one of: $VALID_PREFIXES"
-            echo "valid=false" >> $GITHUB_OUTPUT
-            exit 1
-          else
-            echo "valid=true" >> $GITHUB_OUTPUT
-          fi
-
       - name: Validate PR title (Conventional Commits)
         id: pr-title
         run: |
@@ -107,16 +80,9 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const branchValid = '${{ steps.branch-name.outputs.valid }}';
             const titleValid = '${{ steps.pr-title.outputs.valid }}';
 
             let comment = '## ❌ PR Validation Failed\n\n';
-
-            if (branchValid !== 'true') {
-              comment += '### Branch Name\n';
-              comment += '- ❌ Branch name must start with: `feature/`, `fix/`, `hotfix/`, `test/`, `refactor/`, or `docs/`\n';
-              comment += `- Current branch: \`${{ github.head_ref }}\`\n\n`;
-            }
 
             if (titleValid !== 'true') {
               comment += '### PR Title\n';
@@ -127,9 +93,8 @@ jobs:
             }
 
             comment += '### How to Fix\n\n';
-            comment += '1. Rename your branch if needed: `git branch -m new-branch-name`\n';
-            comment += '2. Update PR title to follow Conventional Commits format\n';
-            comment += '3. Push changes and re-run checks\n\n';
+            comment += '1. Update PR title to follow Conventional Commits format\n';
+            comment += '2. Push changes and re-run checks\n\n';
             comment += '📚 See [CONTRIBUTING.md](../blob/main/docs/CONTRIBUTING.md) for more details.';
 
             await github.rest.issues.createComment({
@@ -139,7 +104,7 @@ jobs:
               body: comment
             });
 
-  quality-checks:
+  quality-gates:
     name: Run Quality Checks
     needs: validate-pr
     uses: ./.github/workflows/reusable-pr-checks.yml
@@ -152,7 +117,7 @@ jobs:
 
   pr-summary:
     name: PR Summary
-    needs: [validate-pr, quality-checks]
+    needs: [validate-pr, quality-gates]
     runs-on: ubuntu-latest
     if: always()
 

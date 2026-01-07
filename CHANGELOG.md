@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added proper quoting around `${BLUE}` and `${NC}` variables in command substitution
   - Prevents "syntax error near unexpected token" during installation on macOS
   - Affects lines 132 and 179 in install.sh
+- **CI Workflow:** Removed strict branch naming requirement for PRs into dev (#17)
+  - Contributors can now use any branch name when creating PRs
+  - Reduces friction for external contributors and fork PRs
+  - Maintains PR title validation (Conventional Commits) for commit hygiene
 
 ---
 

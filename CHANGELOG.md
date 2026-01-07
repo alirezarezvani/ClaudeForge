@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- **Installation Script:** Fixed bash syntax error in `install.sh` caused by missing quotes around color variables in `read -p` commands (#13)
+  - Added proper quoting around `${BLUE}` and `${NC}` variables in command substitution
+  - Prevents "syntax error near unexpected token" during installation on macOS
+  - Affects lines 132 and 179 in install.sh
+
+---
+
 ## [1.0.0] - 2025-11-12
 
 ### 🎉 Initial Release

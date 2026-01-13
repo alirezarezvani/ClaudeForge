@@ -1,7 +1,7 @@
 #!/bin/bash
 # ClaudeForge Installer
 # Automated installation script for macOS and Linux
-# Version: 1.0.0
+# Version: 2.0.0
 
 set -e
 
@@ -36,7 +36,7 @@ echo -e "${BLUE}║                                        ║${NC}"
 echo -e "${BLUE}║         ${GREEN}ClaudeForge Installer${BLUE}         ║${NC}"
 echo -e "${BLUE}║                                        ║${NC}"
 echo -e "${BLUE}║  Automated CLAUDE.md Management Tool   ║${NC}"
-echo -e "${BLUE}║            Version 1.0.0               ║${NC}"
+echo -e "${BLUE}║            Version 2.0.0               ║${NC}"
 echo -e "${BLUE}║                                        ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}"
 echo ""
@@ -53,13 +53,13 @@ if [ ! -d "skill" ] || [ ! -d "command" ] || [ ! -d "agent" ]; then
     TEMP_DIR=$(mktemp -d)
     cd "$TEMP_DIR"
 
-    print_info "Downloading ClaudeForge v1.0.0..."
+    print_info "Downloading ClaudeForge v2.0.0..."
 
     # Download using curl or wget
     if command -v curl &> /dev/null; then
-        curl -fsSL https://github.com/alirezarezvani/ClaudeForge/archive/refs/tags/v1.0.0.tar.gz -o claudeforge.tar.gz
+        curl -fsSL https://github.com/alirezarezvani/ClaudeForge/archive/refs/heads/main.tar.gz -o claudeforge.tar.gz
     elif command -v wget &> /dev/null; then
-        wget -q https://github.com/alirezarezvani/ClaudeForge/archive/refs/tags/v1.0.0.tar.gz -O claudeforge.tar.gz
+        wget -q https://github.com/alirezarezvani/ClaudeForge/archive/refs/heads/main.tar.gz -O claudeforge.tar.gz
     else
         print_error "Neither curl nor wget found. Please install one of them."
         exit 1
@@ -67,7 +67,7 @@ if [ ! -d "skill" ] || [ ! -d "command" ] || [ ! -d "agent" ]; then
 
     print_info "Extracting files..."
     tar -xzf claudeforge.tar.gz
-    cd ClaudeForge-1.0.0
+    cd ClaudeForge-main
 
     print_success "Downloaded ClaudeForge successfully"
 fi
@@ -81,6 +81,40 @@ if [ ! -d "$HOME/.claude" ]; then
     mkdir -p "$HOME/.claude"/{skills,commands,agents}
     print_success "Directory structure created"
 fi
+
+# Check Claude Code version
+check_claude_code_version() {
+    local version=""
+
+    if command -v claude &> /dev/null; then
+        version=$(claude --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    fi
+
+    if [ -z "$version" ]; then
+        print_warning "Could not detect Claude Code version"
+        print_info "ClaudeForge v2.0 requires Claude Code 2.1.0 or later"
+        print_info "Continuing with installation (compatibility not guaranteed)"
+        return 0
+    fi
+
+    local major=$(echo "$version" | cut -d. -f1)
+    local minor=$(echo "$version" | cut -d. -f2)
+
+    if [ "$major" -lt 2 ]; then
+        print_error "Claude Code version $version is not supported"
+        print_error "Please upgrade to Claude Code 2.1.0 or later"
+        return 1
+    elif [ "$major" -eq 2 ] && [ "$minor" -lt 1 ]; then
+        print_warning "Claude Code version $version may have limited features"
+        print_info "Recommended: Claude Code 2.1.4 or later for full hook support"
+    fi
+
+    print_success "Claude Code version $version detected"
+    return 0
+}
+
+print_info "Checking Claude Code version..."
+check_claude_code_version || exit 1
 
 # Ask for installation scope
 echo ""
@@ -196,6 +230,41 @@ if [[ $install_hooks =~ ^[Yy]$ ]]; then
         print_info "Run installer with option 2 in your project directory"
     fi
 fi
+
+# Validate v2.1.4 compatibility
+validate_v214_compatibility() {
+    print_info "Validating v2.1.4 compatibility..."
+
+    local skill_file="$SKILLS_DIR/claudeforge-skill/SKILL.md"
+    local agent_file="$AGENTS_DIR/claude-md-guardian.md"
+
+    # Verify new syntax is present
+    if ! grep -q "permissions:" "$skill_file"; then
+        print_error "Skill missing v2.1.4 permissions syntax"
+        return 1
+    fi
+
+    if ! grep -q "permissions:" "$agent_file"; then
+        print_error "Agent missing v2.1.4 permissions syntax"
+        return 1
+    fi
+
+    # Check for hooks
+    if grep -q "hooks:" "$agent_file"; then
+        print_success "Guardian agent hooks configured"
+    else
+        print_warning "Guardian agent has no hooks (optional)"
+    fi
+
+    print_success "v2.1.4 compatibility validated"
+    return 0
+}
+
+echo ""
+validate_v214_compatibility || {
+    print_error "Installation validation failed"
+    exit 1
+}
 
 # Installation complete
 echo ""

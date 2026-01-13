@@ -9,15 +9,121 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [2.0.0] - 2026-01-08
+
+### 🎉 Major Update: Claude Code v2.1.4+ Support
+
+ClaudeForge v2.0.0 modernizes the toolkit for Claude Code v2.1.4+ with hooks, modern permission syntax, and enhanced automation capabilities.
+
+### Added
+
+#### Claude Code v2.1.4+ Features
+- **Lifecycle Hooks**: Guardian agent now uses SessionStart, PreToolUse, and PostToolUse hooks for automatic maintenance
+  - SessionStart hook checks for CLAUDE.md updates on every new session
+  - PreToolUse hook validates changes before writing
+  - PostToolUse hook confirms successful updates
+- **Modern Permission Syntax**: All components migrated to `permissions:` array format
+  - Skill uses `permissions.allow:` array with wildcard support
+  - Command uses `permissions.allow:` with tool-specific wildcards
+  - Agent uses `permissions.allow:` with comprehensive tool access
+- **Fork-Safe Mode**: Guardian agent configured with `fork_safe: true` for independent execution
+- **Hot-Reload Support**: Skills automatically reload when modified (Claude Code 2.1.0+ feature)
+- **Version Detection**: Installers now detect Claude Code version and validate compatibility
+  - Warns if Claude Code < 2.1.0 (limited features)
+  - Recommends Claude Code 2.1.4+ for full functionality
+  - Exits if Claude Code < 2.0
+- **Auto-Migration System**: Automatic migration from v1.x with timestamped backups
+  - Detects v1.x installations using syntax analysis
+  - Creates dated backups before upgrading
+  - Validates v2.1.4 compatibility after installation
+
+#### Documentation
+- **Migration Guide**: Comprehensive `docs/MIGRATION_V2.md` with step-by-step instructions
+  - Covers permission syntax changes
+  - Documents hooks functionality
+  - Provides troubleshooting guide
+  - Includes rollback procedures
+- **Updated Documentation**: All docs now reference Claude Code v2.1.4+ features
+
+### Changed
+
+- **Skill Frontmatter** (`skill/SKILL.md`):
+  - ~~`tools:` field~~ → `permissions.allow:` array
+  - Added wildcard Bash permissions: `Bash(ls:*)`, `Bash(find:*)`, `Bash(git:*)`
+
+- **Command Frontmatter** (`command/enhance-claude-md.md`):
+  - ~~`allowed-tools:` field~~ → `permissions.allow:` array
+  - Added startup hook for workflow initiation
+
+- **Agent Frontmatter** (`agent/claude-md-guardian.md`):
+  - ~~`tools:` field~~ → `permissions.allow:` array
+  - Added `fork_safe: true` for independent operation
+  - Added SessionStart hook for auto-updates
+  - Added PreToolUse/PostToolUse hooks for Write validation
+  - Removed obsolete `mcp_tools: none` field
+
+- **Installation Scripts**:
+  - `install.sh`: Added Claude Code version detection and validation
+  - `install.ps1`: Added Claude Code version detection and validation
+  - Both scripts now include post-installation compatibility checks
+
+- **Version Requirements**:
+  - **Minimum**: Claude Code 2.1.0
+  - **Recommended**: Claude Code 2.1.4+
+  - **Previous**: Claude Code 2.0+
+
 ### Fixed
-- **Installation Script:** Fixed bash syntax error in `install.sh` caused by missing quotes around color variables in `read -p` commands (#13)
+- **Installation Script:** Fixed bash syntax error in `install.sh` caused by missing quotes around color variables in `read -p` commands (#13, #19)
   - Added proper quoting around `${BLUE}` and `${NC}` variables in command substitution
   - Prevents "syntax error near unexpected token" during installation on macOS
-  - Affects lines 132 and 179 in install.sh
+  - Credit to @bartdorlandt for original fix
+
 - **CI Workflow:** Removed strict branch naming requirement for PRs into dev (#17)
   - Contributors can now use any branch name when creating PRs
   - Reduces friction for external contributors and fork PRs
   - Maintains PR title validation (Conventional Commits) for commit hygiene
+
+- **Compatibility**: All components now fully compatible with Claude Code v2.1.4+
+  - Hooks work correctly with SessionStart events
+  - Permission wildcards properly recognized
+  - Hot-reload enabled for skill modifications
+
+### Deprecated
+
+- **Old Permission Syntax**: `tools:` and `allowed-tools:` fields deprecated in favor of `permissions:`
+  - Still backward compatible for existing installations
+  - Migration guide provides upgrade path
+
+### Breaking Changes
+
+- **Minimum Claude Code Version**: Now requires Claude Code 2.1.0+ (was 2.0+)
+- **Frontmatter Syntax**: Old `tools:` and `allowed-tools:` syntax deprecated
+- **Users on Claude Code < 2.1.0**: Should remain on ClaudeForge v1.0.0
+
+### Migration
+
+👉 **Upgrading from v1.0.0?** See [docs/MIGRATION_V2.md](docs/MIGRATION_V2.md) for detailed migration instructions.
+
+**Quick Migration:**
+```bash
+# Backup first
+cp -r ~/.claude/skills/claudeforge-skill ~/.claude/skills/claudeforge-skill.backup
+
+# Run installer (auto-migrates)
+./install.sh
+
+# Restart Claude Code
+exit
+claude
+```
+
+### Notes
+
+- **Python Modules**: All 5 Python modules (analyzer.py, validator.py, generator.py, template_selector.py, workflow.py) remain unchanged and backward compatible
+- **Examples**: All 7 reference CLAUDE.md templates unchanged
+- **Functionality**: Core analysis, generation, and validation features identical to v1.0.0
 
 ---
 

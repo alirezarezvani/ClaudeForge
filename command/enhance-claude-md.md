@@ -1,6 +1,18 @@
 ---
-allowed-tools: Bash(ls:*), Bash(find:*), Bash(git status:*), Read, Glob, Skill
 description: Initialize or enhance CLAUDE.md files using the claude-md-enhancer skill with interactive workflow and 100% native format compliance
+permissions:
+  allow:
+    - Bash(ls:*)
+    - Bash(find:*)
+    - Bash(git status:*)
+    - Read
+    - Glob
+    - Skill
+hooks:
+  - matcher: ""
+    once: true
+    commands:
+      - echo "Starting CLAUDE.md enhancement workflow"
 ---
 
 # CLAUDE.md Enhancer Command

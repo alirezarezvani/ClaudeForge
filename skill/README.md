@@ -1,8 +1,10 @@
-# claude-md-enhancer
+# claudeforge-skill
 
 > **Analyze, generate, and enhance CLAUDE.md files for any project type with intelligent templates and best practices.**
 
 A comprehensive Claude Code skill that helps teams create and maintain high-quality CLAUDE.md files. Supports analysis, validation, generation, and enhancement with tech stack customization, team size adaptation, and modular architecture.
+
+**v2.0.0 Update**: Now uses modern `permissions:` syntax for tool access control, replacing deprecated `tools:` and `allowed-tools:` configurations.
 
 ## Features
 
@@ -27,7 +29,7 @@ A comprehensive Claude Code skill that helps teams create and maintain high-qual
 
 ```bash
 # Copy skill folder to your project
-cp -r claude-md-enhancer /path/to/your/project/.claude/skills/
+cp -r skill /path/to/your/project/.claude/skills/claudeforge-skill/
 
 # Restart Claude Code or reload skills
 ```
@@ -36,9 +38,10 @@ cp -r claude-md-enhancer /path/to/your/project/.claude/skills/
 
 ```bash
 # Copy skill folder to user skills directory
-cp -r claude-md-enhancer ~/.claude/skills/
+cp -r skill ~/.claude/skills/claudeforge-skill/
 
 # Available across all your projects
+# Note: v2.0.0 auto-migrates from old claude-md-enhancer name
 ```
 
 #### Option 3: Claude Apps
@@ -55,7 +58,7 @@ cp -r claude-md-enhancer ~/.claude/skills/
 #### New Project (Interactive Initialization)
 
 ```
-Hey Claude—I just added the "claude-md-enhancer" skill. I don't have a CLAUDE.md file yet. Can you help me create one for this project?
+Hey Claude—I just added the "claudeforge-skill". I don't have a CLAUDE.md file yet. Can you help me create one for this project?
 ```
 
 Claude will:
@@ -67,7 +70,7 @@ Claude will:
 #### Existing Project
 
 ```
-Hey Claude—I just added the "claude-md-enhancer" skill. Can you analyze my CLAUDE.md and suggest improvements?
+Hey Claude—I just added the "claudeforge-skill". Can you analyze my CLAUDE.md and suggest improvements?
 ```
 
 See [HOW_TO_USE.md](HOW_TO_USE.md) for comprehensive examples.
@@ -79,17 +82,20 @@ See [HOW_TO_USE.md](HOW_TO_USE.md) for comprehensive examples.
 ### Module Overview
 
 ```
-claude-md-enhancer/
+claudeforge-skill/
 ├── SKILL.md                    # Skill definition with YAML frontmatter
 ├── analyzer.py                 # Analyzes existing CLAUDE.md files
 ├── validator.py                # Validates against best practices
 ├── generator.py                # Generates new content
 ├── template_selector.py        # Selects appropriate templates
+├── workflow.py                 # Interactive initialization workflow
 ├── sample_input.json           # Example inputs
 ├── expected_output.json        # Expected outputs
 ├── HOW_TO_USE.md               # Usage examples
 └── README.md                   # This file
 ```
+
+**v2.0.0**: Updated SKILL.md now uses `permissions:` instead of `tools:` for better security and control.
 
 ### Python Modules
 
@@ -459,9 +465,10 @@ Before finalizing any CLAUDE.md generation:
 
 ## Version
 
-**Version**: 1.0.0
-**Last Updated**: November 2025
-**Compatible**: Claude Code 2.0+, Claude Apps, Claude API
+**Version**: 2.0.0
+**Last Updated**: January 2026
+**Compatible**: Claude Code 2.1.4+, Claude Apps, Claude API
+**Migration**: See [../docs/MIGRATION_V2.md](../docs/MIGRATION_V2.md) for upgrade guide from v1.x
 
 ---
 
@@ -505,23 +512,34 @@ For automatic CLAUDE.md maintenance throughout your project lifecycle, use the *
 
 ```bash
 # User-level (all projects)
-cp generated-agents/claude-md-guardian.md ~/.claude/agents/
+cp agent/claude-md-guardian.md ~/.claude/agents/
 
 # Project-level (current project)
-cp generated-agents/claude-md-guardian.md .claude/agents/
+cp agent/claude-md-guardian.md .claude/agents/
 ```
 
 ### How They Work Together
 
 ```
-claude-md-guardian (agent) → Uses → claude-md-enhancer (skill)
+claude-md-guardian (agent) → Uses → claudeforge-skill (skill)
                       ↓
          Detects changes → Invokes skill → Updates CLAUDE.md
 ```
 
 **Result**: Your CLAUDE.md stays synchronized with your codebase automatically!
 
-See `generated-agents/claude-md-guardian-README.md` for complete agent documentation.
+**v2.0.0**: Agent now uses `permissions:` syntax for controlled tool access. Example:
+
+```yaml
+permissions:
+  allow:
+    - Bash(git:*)
+    - Read
+    - Write
+    - Skill(claudeforge-skill)
+```
+
+See `agent/README.md` for complete agent documentation.
 
 ---
 
@@ -529,8 +547,9 @@ See `generated-agents/claude-md-guardian-README.md` for complete agent documenta
 
 - **Documentation**: See [SKILL.md](SKILL.md) for complete documentation
 - **Examples**: See [HOW_TO_USE.md](HOW_TO_USE.md) for usage examples
-- **Companion Agent**: See `../../generated-agents/claude-md-guardian-README.md`
-- **Slash Command**: See `../../generated-commands/enhance-claude-md/README.md`
+- **Companion Agent**: See [../agent/README.md](../agent/README.md)
+- **Slash Command**: See [../command/README.md](../command/README.md)
+- **Migration Guide**: See [../docs/MIGRATION_V2.md](../docs/MIGRATION_V2.md)
 - **Issues**: Report bugs in the main repository
 - **Community**: Share your CLAUDE.md setups and best practices
 

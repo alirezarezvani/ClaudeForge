@@ -3,12 +3,25 @@
 > **Automated CLAUDE.md creation, enhancement, and maintenance for Claude Code projects**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/alirezarezvani/ClaudeForge/releases)
-[![Claude Code](https://img.shields.io/badge/Claude_Code-2.0%2B-purple.svg)](https://claude.com/claude-code)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/alirezarezvani/ClaudeForge/releases)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-2.1.4%2B-purple.svg)](https://claude.com/claude-code)
 [![CI/CD](https://img.shields.io/badge/CI/CD-GitHub_Actions-2088FF.svg)](https://github.com/alirezarezvani/ClaudeForge/actions)
 [![Quality Gates](https://img.shields.io/badge/Quality_Gates-Automated-success.svg)](docs/GITHUB_WORKFLOWS.md)
 
 ClaudeForge is a comprehensive toolkit that eliminates the tedious process of manually creating and maintaining CLAUDE.md files. With intelligent analysis, automated generation, and background maintenance, your CLAUDE.md files stay perfectly synchronized with your codebase.
+
+---
+
+## 🆕 New in v2.0 (Claude Code v2.1.4+ Support)
+
+- **Lifecycle Hooks**: Guardian agent automatically checks for updates at session start using SessionStart hooks
+- **Modern Permissions**: All components now use `permissions:` syntax for fine-grained control
+- **Hot-Reload**: Skills automatically reload when modified (no restart needed)
+- **Fork-Safe Mode**: Guardian runs independently with `fork_safe: true` without blocking operations
+- **Version Detection**: Installers validate Claude Code version and ensure compatibility
+- **Auto-Migration**: Seamless upgrade from v1.x with automatic backups
+
+👉 **Upgrading from v1.x?** See [docs/MIGRATION_V2.md](docs/MIGRATION_V2.md) for migration guide.
 
 ---
 

@@ -45,7 +45,7 @@ Available in all your Claude Code projects:
 
 ```bash
 # Copy agent to user directory
-cp generated-agents/claude-md-guardian/claude-md-guardian.md ~/.claude/agents/
+cp agent/claude-md-guardian.md ~/.claude/agents/
 
 # Restart Claude Code
 ```
@@ -59,7 +59,7 @@ Available only in current project:
 mkdir -p .claude/agents
 
 # Copy agent
-cp generated-agents/claude-md-guardian/claude-md-guardian.md .claude/agents/
+cp agent/claude-md-guardian.md .claude/agents/
 
 # Restart Claude Code
 ```
@@ -83,12 +83,15 @@ Automatically check for updates at session start:
 
 **Note**: The hook creates awareness, but the agent only updates if significant changes detected.
 
+**v2.0.0 Update**: Hooks now support advanced features like `run_in_background`, environment variables, and conditional execution. See [docs/MIGRATION_V2.md](../docs/MIGRATION_V2.md) for details.
+
 ## Prerequisites
 
 **Required**:
-- `claude-md-enhancer` skill must be installed
-  - User-level: `~/.claude/skills/claude-md-enhancer/`
-  - Project-level: `.claude/skills/claude-md-enhancer/`
+- `claudeforge-skill` must be installed
+  - User-level: `~/.claude/skills/claudeforge-skill/`
+  - Project-level: `.claude/skills/claudeforge-skill/`
+  - **v2.0.0**: Auto-migrates from old `claude-md-enhancer` name
 
 **Optional** (but recommended):
 - `/enhance-claude-md` slash command
@@ -329,22 +332,25 @@ In the agent file, you can adjust when updates trigger:
 
 ### Skill Not Found Error
 
-**Problem**: "claude-md-enhancer skill not found"
+**Problem**: "claudeforge-skill not found"
 **Solution**:
 ```bash
 # Install the skill
-cp -r generated-skills/claude-md-enhancer ~/.claude/skills/
+cp -r skill ~/.claude/skills/claudeforge-skill/
 # Restart Claude Code
+# Note: v2.0.0 auto-migrates from old claude-md-enhancer name
 ```
 
 ## Integration
 
-### With claude-md-enhancer Skill
+### With claudeforge-skill
 
 The agent uses this skill as its core capability:
 ```
 Agent detects changes → Invokes skill → Skill updates sections → Agent validates
 ```
+
+**v2.0.0**: Uses new `permissions:` syntax for tool access control.
 
 ### With /enhance-claude-md Command
 
@@ -389,16 +395,17 @@ The slash command can invoke the agent:
 
 ## Version
 
-- **Version**: 1.0.0
-- **Last Updated**: November 2025
-- **Compatible**: Claude Code 2.0+
-- **Dependencies**: claude-md-enhancer skill v1.0.0+
+- **Version**: 2.0.0
+- **Last Updated**: January 2026
+- **Compatible**: Claude Code 2.1.4+
+- **Dependencies**: claudeforge-skill v2.0.0+
+- **Migration**: See [docs/MIGRATION_V2.md](../docs/MIGRATION_V2.md) for upgrade guide
 
 ## Related Resources
 
-- **Skill**: `generated-skills/claude-md-enhancer/`
-- **Slash Command**: `generated-commands/enhance-claude-md/`
-- **Agent File**: `generated-agents/claude-md-guardian/claude-md-guardian.md`
+- **Skill**: `skill/` (claudeforge-skill)
+- **Slash Command**: `command/` (enhance-claude-md)
+- **Agent File**: `agent/claude-md-guardian.md`
 
 ---
 

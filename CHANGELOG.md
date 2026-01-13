@@ -45,7 +45,14 @@ ClaudeForge v2.0.0 modernizes the toolkit for Claude Code v2.1.4+ with hooks, mo
   - Documents hooks functionality
   - Provides troubleshooting guide
   - Includes rollback procedures
+- **Testing Scripts**: Complete test suite in `test/` directory
+  - `test/validate_migration.sh` - 18 automated validation tests
+  - `test/rollback.sh` - One-command rollback to v1.x
+  - `test/README.md` - Testing documentation and workflows
+  - `test/LOCAL_TESTING_GUIDE.md` - Step-by-step local testing guide
 - **Updated Documentation**: All docs now reference Claude Code v2.1.4+ features
+  - `CLAUDE.md` - Updated with v2.0.0 features and permission syntax examples
+  - `README.md` - Added "New in v2.0" section highlighting features
 
 ### Changed
 

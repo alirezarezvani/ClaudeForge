@@ -2,7 +2,9 @@
 
 This folder contains reference implementations of CLAUDE.md files for different project types and team sizes.
 
-**✨ NEW**: All examples now follow **100% native Claude Code format** with proper project structure diagrams, setup instructions, architecture sections, and file structure explanations - matching the official `/update-claude-md` slash command format.
+**✨ v2.0.0 Update**: All examples now follow **100% native Claude Code format** with proper project structure diagrams, setup instructions, architecture sections, and file structure explanations - matching the official `/update-claude-md` slash command format.
+
+**New in v2.0.0**: Examples demonstrate modern `permissions:` syntax for skills and agents, replacing deprecated `tools:` configurations.
 
 ## Available Examples
 
@@ -59,15 +61,17 @@ cp examples/modular-backend-CLAUDE.md /path/to/your/project/backend/CLAUDE.md
 cp examples/modular-frontend-CLAUDE.md /path/to/your/project/frontend/CLAUDE.md
 ```
 
-### 3. Using with claude-md-enhancer Skill
+### 3. Using with claudeforge-skill
 
 These examples demonstrate the output quality you can expect from the skill:
 
 ```
-Hey Claude—I just added the "claude-md-enhancer" skill.
+Hey Claude—I just added the "claudeforge-skill".
 Can you create a CLAUDE.md similar to the core-small-team example
 but customized for my Go API project?
 ```
+
+**v2.0.0**: The skill now uses `permissions:` syntax for secure tool access control.
 
 ## Template Selection Guide
 
@@ -114,6 +118,8 @@ All examples now include these **native Claude Code sections**:
 
 **Why This Matters**: These sections match the official `/update-claude-md` slash command format, ensuring Claude Code can navigate and understand your codebase efficiently.
 
+**v2.0.0 Compatibility**: All examples are compatible with Claude Code 2.1.4+ and use modern permission syntax where applicable.
+
 ### Expected Quality Scores
 
 | Example | Quality Score |
@@ -132,7 +138,22 @@ All examples now include these **native Claude Code sections**:
 3. **Add Team Standards**: Include team-specific conventions
 4. **Update Commands**: Replace commands with your actual npm/yarn/poetry scripts
 5. **Add Context**: Include project-specific context that helps Claude understand your goals
+6. **v2.0.0**: Use `permissions:` syntax in skills/agents instead of deprecated `tools:` or `allowed-tools:`
 
 ## Contributing
 
-These examples represent best practices as of November 2025. If you have improvements or additional examples, please contribute them!
+These examples represent best practices as of January 2026. If you have improvements or additional examples, please contribute them!
+
+## Version
+
+- **Version**: 2.0.0
+- **Last Updated**: January 2026
+- **Compatible**: Claude Code 2.1.4+
+- **Migration Guide**: See [../../docs/MIGRATION_V2.md](../../docs/MIGRATION_V2.md) for upgrade instructions
+
+## Related Documentation
+
+- **Skill Documentation**: [../README.md](../README.md)
+- **Agent Documentation**: [../../agent/README.md](../../agent/README.md)
+- **Command Documentation**: [../../command/README.md](../../command/README.md)
+- **Migration Guide**: [../../docs/MIGRATION_V2.md](../../docs/MIGRATION_V2.md)

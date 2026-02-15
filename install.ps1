@@ -1,6 +1,6 @@
 # ClaudeForge Installer for Windows
 # PowerShell installation script
-# Version: 1.0.0
+# Version: 2.0.0
 
 #Requires -Version 5.1
 
@@ -36,7 +36,7 @@ Write-Host "ClaudeForge Installer" -NoNewline -ForegroundColor Green
 Write-Host "         ║" -ForegroundColor Blue
 Write-Host "║                                        ║" -ForegroundColor Blue
 Write-Host "║  Automated CLAUDE.md Management Tool   ║" -ForegroundColor Blue
-Write-Host "║            Version 1.0.0               ║" -ForegroundColor Blue
+Write-Host "║            Version 2.0.0               ║" -ForegroundColor Blue
 Write-Host "║                                        ║" -ForegroundColor Blue
 Write-Host "╚════════════════════════════════════════╝" -ForegroundColor Blue
 Write-Host ""
@@ -53,10 +53,10 @@ if (-not (Test-Path "skill") -or -not (Test-Path "command") -or -not (Test-Path 
     $TempDir = New-Item -ItemType Directory -Path ([System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), [System.Guid]::NewGuid().ToString())) -Force
     Set-Location $TempDir
 
-    Write-Info "Downloading ClaudeForge v1.0.0..."
+    Write-Info "Downloading ClaudeForge v2.0.0..."
 
     # Download archive
-    $archiveUrl = "https://github.com/alirezarezvani/ClaudeForge/archive/refs/tags/v1.0.0.zip"
+    $archiveUrl = "https://github.com/alirezarezvani/ClaudeForge/archive/refs/heads/main.zip"
     $archivePath = Join-Path $TempDir "claudeforge.zip"
 
     try {
@@ -68,7 +68,7 @@ if (-not (Test-Path "skill") -or -not (Test-Path "command") -or -not (Test-Path 
 
     Write-Info "Extracting files..."
     Expand-Archive -Path $archivePath -DestinationPath $TempDir -Force
-    Set-Location (Join-Path $TempDir "ClaudeForge-1.0.0")
+    Set-Location (Join-Path $TempDir "ClaudeForge-main")
 
     Write-Success "Downloaded ClaudeForge successfully"
 }
@@ -84,6 +84,50 @@ if (-not (Test-Path $claudeDir)) {
     New-Item -ItemType Directory -Path "$claudeDir\commands" -Force | Out-Null
     New-Item -ItemType Directory -Path "$claudeDir\agents" -Force | Out-Null
     Write-Success "Directory structure created"
+}
+
+# Check Claude Code version
+function Check-ClaudeCodeVersion {
+    $version = $null
+
+    try {
+        $output = & claude --version 2>&1
+        if ($output -match '\d+\.\d+\.\d+') {
+            $version = $matches[0]
+        }
+    } catch {
+        Write-Warning "Could not detect Claude Code version"
+        Write-Info "ClaudeForge v2.0 requires Claude Code 2.1.0 or later"
+        Write-Info "Continuing with installation (compatibility not guaranteed)"
+        return $true
+    }
+
+    if ([string]::IsNullOrEmpty($version)) {
+        Write-Warning "Could not detect Claude Code version"
+        Write-Info "Continuing with installation (compatibility not guaranteed)"
+        return $true
+    }
+
+    $parts = $version.Split('.')
+    $major = [int]$parts[0]
+    $minor = [int]$parts[1]
+
+    if ($major -lt 2) {
+        Write-Error-Custom "Claude Code version $version is not supported"
+        Write-Error-Custom "Please upgrade to Claude Code 2.1.0 or later"
+        return $false
+    } elseif ($major -eq 2 -and $minor -lt 1) {
+        Write-Warning "Claude Code version $version may have limited features"
+        Write-Info "Recommended: Claude Code 2.1.4 or later for full hook support"
+    }
+
+    Write-Success "Claude Code version $version detected"
+    return $true
+}
+
+Write-Info "Checking Claude Code version..."
+if (-not (Check-ClaudeCodeVersion)) {
+    exit 1
 }
 
 # Ask for installation scope
@@ -211,6 +255,46 @@ if ($installHooks -match "^[Yy]$") {
         Write-Warning "Quality hooks can only be installed at project-level"
         Write-Info "Run installer with option 2 in your project directory"
     }
+}
+
+# Validate v2.1.4 compatibility
+function Validate-V214Compatibility {
+    param(
+        [string]$skillsDir,
+        [string]$agentsDir
+    )
+
+    Write-Info "Validating v2.1.4 compatibility..."
+
+    $skillFile = Join-Path $skillsDir "claudeforge-skill\SKILL.md"
+    $agentFile = Join-Path $agentsDir "claude-md-guardian.md"
+
+    # Verify new syntax is present
+    if (-not (Select-String -Path $skillFile -Pattern "permissions:" -Quiet)) {
+        Write-Error-Custom "Skill missing v2.1.4 permissions syntax"
+        return $false
+    }
+
+    if (-not (Select-String -Path $agentFile -Pattern "permissions:" -Quiet)) {
+        Write-Error-Custom "Agent missing v2.1.4 permissions syntax"
+        return $false
+    }
+
+    # Check for hooks
+    if (Select-String -Path $agentFile -Pattern "hooks:" -Quiet) {
+        Write-Success "Guardian agent hooks configured"
+    } else {
+        Write-Warning "Guardian agent has no hooks (optional)"
+    }
+
+    Write-Success "v2.1.4 compatibility validated"
+    return $true
+}
+
+Write-Host ""
+if (-not (Validate-V214Compatibility -skillsDir $skillsDir -agentsDir $agentsDir)) {
+    Write-Error-Custom "Installation validation failed"
+    exit 1
 }
 
 # Installation complete

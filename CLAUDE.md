@@ -14,6 +14,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## What's New in v2.0.0
+
+**Claude Code v2.1.4+ Support:**
+- **Lifecycle Hooks**: Guardian agent uses SessionStart, PreToolUse, PostToolUse hooks
+- **Modern Permissions**: Updated to `permissions:` array syntax
+- **Hot-Reload**: Skills auto-reload when modified (no restart needed)
+- **Fork-Safe Mode**: Guardian runs independently with `fork_safe: true`
+- **Auto-Migration**: Seamless upgrade from v1.x with automatic backups
+
+**Migration:** See `docs/MIGRATION_V2.md` for upgrading from v1.0.0.
+
+---
+
 ## Architecture
 
 ### Component Interaction Flow
@@ -152,14 +165,31 @@ When updating `claude-md-guardian` agent:
 
 1. Edit `agent/claude-md-guardian.md`
 2. Key YAML frontmatter fields:
-   - `tools`: Limited to Bash, Read, Write, Edit, Grep, Glob, Skill
+   - `permissions`: [Bash, Read, Write, Edit, Grep, Glob, Skill]
    - `model`: Set to `haiku` for token efficiency
    - `color`: Visual indicator (purple)
+   - `fork_safe`: Set to `true` for independent execution
+   - `hooks`: Array of lifecycle hooks (SessionStart, PreToolUse, PostToolUse)
 3. Agent workflow phases:
    - Phase 1: Assessment (check git changes)
    - Phase 2: Analysis (determine scope)
    - Phase 3: Update (invoke skill for targeted updates)
 4. Test: `cp agent/claude-md-guardian.md ~/.claude/agents/`
+
+**Example Agent Definition with v2.0.0 Syntax:**
+```yaml
+---
+name: claude-md-guardian
+permissions: [Bash, Read, Write, Edit, Grep, Glob, Skill]
+model: haiku
+color: purple
+fork_safe: true
+hooks:
+  - SessionStart
+  - PreToolUse
+  - PostToolUse
+---
+```
 
 ### Adding New Templates
 
@@ -382,10 +412,27 @@ Claude Code recognizes the skill name `claude-md-enhancer` and calls Python modu
 The agent uses the skill as its core capability:
 ```yaml
 # In agent/claude-md-guardian.md:
-tools: Bash, Read, Write, Edit, Grep, Glob, Skill
+permissions: [Bash, Read, Write, Edit, Grep, Glob, Skill]
+hooks:
+  - SessionStart  # Detects project changes on session start
+  - PreToolUse    # Validates before tool execution
+  - PostToolUse   # Validates after CLAUDE.md updates
 ```
 
 Agent invokes skill with: `Skill: claude-md-enhancer` in agent workflow.
+
+**Example Hook Usage:**
+```markdown
+# When SessionStart hook triggers:
+1. Check git diff for changes
+2. If significant changes detected → invoke skill
+3. Update CLAUDE.md automatically
+
+# When PostToolUse hook triggers after Edit/Write to CLAUDE.md:
+1. Validate updated content with validator.py
+2. Report quality score
+3. Suggest improvements if needed
+```
 
 ### Agent ↔ Git
 
@@ -448,15 +495,15 @@ When updating references:
 
 ## Version Management
 
-**Current Version:** 1.0.0 (see CHANGELOG.md)
+**Current Version:** 2.0.0 (see CHANGELOG.md)
 **Versioning:** Semantic Versioning (MAJOR.MINOR.PATCH)
 
 When releasing new version:
 1. Update `CHANGELOG.md` with changes under new version header
 2. Update version in `README.md` badge
 3. Update version in `skill/SKILL.md` bottom section
-4. Create git tag: `git tag -a v1.1.0 -m "Release v1.1.0"`
-5. Push tag: `git push origin v1.1.0`
+4. Create git tag: `git tag -a v2.1.0 -m "Release v2.1.0"`
+5. Push tag: `git push origin v2.1.0`
 6. Create GitHub release with CHANGELOG excerpt
 
 ---

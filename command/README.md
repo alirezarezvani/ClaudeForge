@@ -9,6 +9,7 @@ Initialize or enhance CLAUDE.md files using the `claude-md-enhancer` skill with 
 - **Quality Analysis**: For existing projects, analyzes current CLAUDE.md and provides actionable recommendations
 - **100% Native Format Compliance**: Generates files with project structure diagrams, setup instructions, architecture sections
 - **Modular Architecture Support**: Creates context-specific CLAUDE.md files (backend/, frontend/, database/)
+- **v2.0.0**: Enhanced hooks support with background execution and conditional triggers
 
 ## Installation
 
@@ -16,17 +17,17 @@ Initialize or enhance CLAUDE.md files using the `claude-md-enhancer` skill with 
 
 ```bash
 # Copy command to your project
-cp -r generated-commands/enhance-claude-md /path/to/your/project/.claude/commands/
+cp -r command /path/to/your/project/.claude/commands/
 
 # Or create symlink
-ln -s $(pwd)/generated-commands/enhance-claude-md /path/to/your/project/.claude/commands/enhance-claude-md
+ln -s $(pwd)/command /path/to/your/project/.claude/commands/enhance-claude-md
 ```
 
 ### Option 2: User-Level (All Projects)
 
 ```bash
 # Copy command to user commands directory
-cp -r generated-commands/enhance-claude-md ~/.claude/commands/
+cp -r command ~/.claude/commands/
 
 # Restart Claude Code
 ```
@@ -140,9 +141,10 @@ The command follows the **Multi-Phase Pattern** (similar to `codebase-analyze`):
 ## Prerequisites
 
 **Required**:
-- `claude-md-enhancer` skill must be installed
-  - Project-level: `.claude/skills/claude-md-enhancer/`
-  - User-level: `~/.claude/skills/claude-md-enhancer/`
+- `claudeforge-skill` must be installed
+  - Project-level: `.claude/skills/claudeforge-skill/`
+  - User-level: `~/.claude/skills/claudeforge-skill/`
+  - **v2.0.0**: Auto-migrates from old `claude-md-enhancer` name
 
 **Recommended**:
 - Git repository (for better context detection)
@@ -184,7 +186,7 @@ The command follows the **Multi-Phase Pattern** (similar to `codebase-analyze`):
 
 ## Output
 
-The command can invoke either the `claude-md-enhancer` skill directly OR the `claude-md-guardian` agent (recommended for maintenance).
+The command can invoke either the `claudeforge-skill` directly OR the `claude-md-guardian` agent (recommended for maintenance).
 
 ### Option A: Direct Skill Invocation
 
@@ -316,9 +318,10 @@ Proceed?
 
 ### "Skill not found" error
 
-**Solution**: Install the `claude-md-enhancer` skill first:
+**Solution**: Install the `claudeforge-skill` first:
 ```bash
-cp -r generated-skills/claude-md-enhancer ~/.claude/skills/
+cp -r skill ~/.claude/skills/claudeforge-skill/
+# Note: v2.0.0 auto-migrates from old claude-md-enhancer name
 ```
 
 ### Command not recognized
@@ -350,9 +353,24 @@ Discovery → Analysis → Task
     ↓
 Invokes claude-md-guardian (agent)
     ↓
-Agent uses claude-md-enhancer (skill)
+Agent uses claudeforge-skill (skill)
     ↓
 CLAUDE.md updated and synchronized
+```
+
+**v2.0.0 Enhancement**: Hooks can now trigger background validation checks. Example:
+
+```json
+{
+  "hooks": {
+    "AfterCommit": {
+      "command": "/enhance-claude-md",
+      "run_in_background": true,
+      "timeout": 10000,
+      "description": "Validate CLAUDE.md after commits"
+    }
+  }
+}
 ```
 
 ### When to Use the Agent
@@ -369,21 +387,22 @@ CLAUDE.md updated and synchronized
 - Silent if no significant changes
 - Updates only when needed
 
-**See**: `generated-agents/claude-md-guardian-README.md` for complete agent documentation
+**See**: [agent/README.md](../agent/README.md) for complete agent documentation
 
 ## Related Resources
 
-- **Skill Documentation**: `generated-skills/claude-md-enhancer/README.md`
-- **Skill Examples**: `generated-skills/claude-md-enhancer/examples/`
-- **Agent Documentation**: `generated-agents/claude-md-guardian-README.md`
+- **Skill Documentation**: [../skill/README.md](../skill/README.md)
+- **Skill Examples**: [../skill/examples/](../skill/examples/)
+- **Agent Documentation**: [../agent/README.md](../agent/README.md)
 - **Official Slash Command Reference**: `documentation/references/slash-command-update-claude-md-example.md`
 
 ## Version
 
-- **Version**: 1.0.0
-- **Last Updated**: November 2025
-- **Compatible**: Claude Code 2.0+
-- **Dependencies**: claude-md-enhancer skill v1.0.0+
+- **Version**: 2.0.0
+- **Last Updated**: January 2026
+- **Compatible**: Claude Code 2.1.4+
+- **Dependencies**: claudeforge-skill v2.0.0+
+- **Migration**: See [docs/MIGRATION_V2.md](../docs/MIGRATION_V2.md) for upgrade guide
 
 ---
 

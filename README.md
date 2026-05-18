@@ -49,6 +49,9 @@ Interactive interface with multi-phase discovery workflow
 ### 3. **Guardian Agent** (`claude-md-guardian`)
 Background agent for automatic CLAUDE.md maintenance and synchronization
 
+### 4. **Karpathy Guidelines Skill** (`karpathy-guidelines`)
+Behavioral guardrails — Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution — installed as a standalone skill and automatically embedded into every CLAUDE.md generated or enhanced by `/enhance-claude-md`. Adapted with attribution from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) repository, inspired by Andrej Karpathy's observations on common LLM coding failure modes.
+
 ---
 
 ## 🚀 Quick Start

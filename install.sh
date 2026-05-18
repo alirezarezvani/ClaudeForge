@@ -158,6 +158,7 @@ done
 echo ""
 print_info "Installation will create:"
 echo "  • Skill:    $SKILLS_DIR/claudeforge-skill/"
+echo "  • Skill:    $SKILLS_DIR/karpathy-guidelines/"
 echo "  • Command:  $COMMANDS_DIR/enhance-claude-md/"
 echo "  • Agent:    $AGENTS_DIR/claude-md-guardian.md"
 echo ""
@@ -187,6 +188,20 @@ if [ -d "$SKILLS_DIR/claudeforge-skill" ]; then
 fi
 cp -r skill "$SKILLS_DIR/claudeforge-skill"
 print_success "Skill installed → $SKILLS_DIR/claudeforge-skill/"
+
+# Install karpathy-guidelines as a separate top-level skill so it is
+# discoverable as its own skill (and applies to every project, not only
+# during /enhance-claude-md runs).
+print_info "Installing karpathy-guidelines skill..."
+if [ -d "$SKILLS_DIR/karpathy-guidelines" ]; then
+    print_warning "Existing karpathy-guidelines skill found. Creating backup..."
+    mv "$SKILLS_DIR/karpathy-guidelines" "$SKILLS_DIR/karpathy-guidelines.backup.$(date +%Y%m%d_%H%M%S)"
+    print_success "Backup created"
+fi
+cp -r skill/karpathy-guidelines "$SKILLS_DIR/karpathy-guidelines"
+# Remove the nested duplicate so the karpathy skill exists once.
+rm -rf "$SKILLS_DIR/claudeforge-skill/karpathy-guidelines"
+print_success "Karpathy guidelines installed → $SKILLS_DIR/karpathy-guidelines/"
 
 # Install slash command
 print_info "Installing /enhance-claude-md command..."
@@ -303,10 +318,12 @@ print_info "To uninstall, run:"
 echo ""
 if [ "$SCOPE" == "user-level" ]; then
     echo "  rm -rf ~/.claude/skills/claudeforge-skill"
+    echo "  rm -rf ~/.claude/skills/karpathy-guidelines"
     echo "  rm -rf ~/.claude/commands/enhance-claude-md"
     echo "  rm -f ~/.claude/agents/claude-md-guardian.md"
 else
     echo "  rm -rf ./.claude/skills/claudeforge-skill"
+    echo "  rm -rf ./.claude/skills/karpathy-guidelines"
     echo "  rm -rf ./.claude/commands/enhance-claude-md"
     echo "  rm -f ./.claude/agents/claude-md-guardian.md"
 fi

@@ -61,6 +61,12 @@ class ContentGenerator:
         lines.extend(principles)
         lines.append("")
 
+        # Behavioral Guidelines (Karpathy principles - applied to every project)
+        lines.append("## Behavioral Guidelines")
+        lines.append("")
+        lines.extend(self._generate_karpathy_guidelines())
+        lines.append("")
+
         # Tech Stack (summary only)
         if self.project_context.get('tech_stack'):
             lines.append("## Tech Stack")
@@ -388,6 +394,13 @@ class ContentGenerator:
                 lines.append("")
                 lines.append(new_section)
 
+        # Always ensure the Karpathy behavioral guidelines section is present
+        if "Behavioral Guidelines" not in existing_sections:
+            lines.append("")
+            lines.append("## Behavioral Guidelines")
+            lines.append("")
+            lines.extend(self._generate_karpathy_guidelines())
+
         return '\n'.join(lines)
 
     def _extract_existing_sections(self, content: str) -> List[str]:
@@ -447,6 +460,33 @@ class ContentGenerator:
             principles.append(f"{principle_num}. {principle}")
 
         return principles
+
+    def _generate_karpathy_guidelines(self) -> List[str]:
+        """Emit the embedded Karpathy guidelines section.
+
+        Distilled summary applied to every generated CLAUDE.md. The full skill
+        text lives in the ``karpathy-guidelines`` skill installed alongside
+        ClaudeForge.
+        """
+        return [
+            "Behavioral guardrails applied to every coding, review, and refactoring task.",
+            "Full skill: `~/.claude/skills/karpathy-guidelines/SKILL.md`.",
+            "",
+            "1. **Think before coding.** State load-bearing assumptions; if a request "
+            "has multiple reasonable interpretations, surface them instead of picking "
+            "silently. Stop and ask when something is genuinely unclear.",
+            "2. **Simplicity first.** Write the minimum code that solves the stated "
+            "problem. No speculative abstractions, no unrequested configuration, no "
+            "error handling for conditions that cannot occur. If the first draft is "
+            "much larger than necessary, rewrite before shipping.",
+            "3. **Surgical changes.** Touch only what the task requires. Do not "
+            "opportunistically reformat or refactor adjacent code, and match the "
+            "surrounding style. Every changed line should trace directly to the "
+            "user's request.",
+            "4. **Goal-driven execution.** Convert vague requests into verifiable "
+            "success criteria before coding (e.g. failing test first), and state a "
+            "step-by-step plan with per-step verification for multi-step work.",
+        ]
 
     def _generate_tech_stack_summary(self) -> List[str]:
         """Generate tech stack summary."""

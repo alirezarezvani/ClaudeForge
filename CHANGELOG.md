@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Karpathy Guidelines skill** (`skill/karpathy-guidelines/SKILL.md`): a behavioral-guardrail skill installed alongside ClaudeForge that applies to every coding, review, and refactoring task. Covers four principles — Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution — adapted with attribution from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) repository.
+- **Automatic embedding into every CLAUDE.md**: `skill/template_selector.py` and `skill/generator.py` now insert a `## Behavioral Guidelines` section into every generated and enhanced CLAUDE.md, so the principles ship with every project that runs `/enhance-claude-md`.
+- **Installer support for the new skill**: `install.sh` and `install.ps1` now copy the skill to `~/.claude/skills/karpathy-guidelines/` (or the project-level equivalent) and include it in the uninstall instructions.
+- **Slash command documentation**: `command/enhance-claude-md.md` documents the always-on Behavioral Guidelines section as a required part of the workflow.
+
 ---
 
 ## [2.0.0] - 2026-01-08

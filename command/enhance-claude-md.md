@@ -82,6 +82,14 @@ The skill provides:
 - 🔧 **Enhancement**: Adds missing sections and improves existing files
 - 📦 **Modular Architecture**: Supports context-specific files (backend/, frontend/, database/)
 
+### Always-On: Karpathy Behavioral Guidelines
+
+Every generated or enhanced CLAUDE.md MUST include a `## Behavioral Guidelines` section summarising the four Karpathy principles (Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution) with a link to the installed `karpathy-guidelines` skill.
+
+The `claude-md-enhancer` skill inserts this section automatically — both in `template_selector.customize_template()` for new files and in `generator.merge_with_existing()` for enhanced files. Do not strip it during enhancement; if it is missing from an existing CLAUDE.md, treat that as a required addition.
+
+The full skill is installed at `~/.claude/skills/karpathy-guidelines/SKILL.md` (or `./.claude/skills/karpathy-guidelines/SKILL.md` for project-level installs).
+
 ### Option B: Agent Invocation (Recommended for Maintenance)
 
 For ongoing maintenance and automatic updates throughout your project lifecycle, I can invoke the `claude-md-guardian` agent instead:

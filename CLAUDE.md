@@ -6,11 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**ClaudeForge** is a comprehensive toolkit for automated CLAUDE.md creation, enhancement, and maintenance for Claude Code projects. The repository consists of three integrated components:
+**ClaudeForge** is a comprehensive toolkit for automated CLAUDE.md creation, enhancement, and maintenance for Claude Code projects. The repository consists of four integrated components:
 
 1. **Skill** (`claudeforge-skill`) - Core Python modules for analysis, generation, and validation
 2. **Slash Command** (`/enhance-claude-md`) - Interactive multi-phase discovery workflow
 3. **Guardian Agent** (`claude-md-guardian`) - Background maintenance agent
+4. **Karpathy Guidelines Skill** (`karpathy-guidelines`) - Behavioral guardrails embedded into every generated CLAUDE.md and installed as a standalone skill, adapted with attribution from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) repository
 
 ---
 

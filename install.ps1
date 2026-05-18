@@ -177,6 +177,7 @@ while (-not $validChoice) {
 Write-Host ""
 Write-Info "Installation will create:"
 Write-Host "  • Skill:    $skillsDir\claudeforge-skill\"
+Write-Host "  • Skill:    $skillsDir\karpathy-guidelines\"
 Write-Host "  • Command:  $commandsDir\enhance-claude-md\"
 Write-Host "  • Agent:    $agentsDir\claude-md-guardian.md"
 Write-Host ""
@@ -210,6 +211,25 @@ if (Test-Path $skillPath) {
 }
 Copy-Item -Path "skill" -Destination $skillPath -Recurse -Force
 Write-Success "Skill installed → $skillPath\"
+
+# Install karpathy-guidelines as a separate top-level skill so it is
+# discoverable as its own skill and applies to every project (not only
+# during /enhance-claude-md runs).
+Write-Info "Installing karpathy-guidelines skill..."
+$karpathyPath = "$skillsDir\karpathy-guidelines"
+if (Test-Path $karpathyPath) {
+    Write-Warning "Existing karpathy-guidelines skill found. Creating backup..."
+    $backupName = "karpathy-guidelines.backup.$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+    Move-Item -Path $karpathyPath -Destination "$skillsDir\$backupName" -Force
+    Write-Success "Backup created"
+}
+Copy-Item -Path "skill\karpathy-guidelines" -Destination $karpathyPath -Recurse -Force
+# Remove the nested duplicate inside claudeforge-skill so the skill exists once.
+$nestedKarpathy = "$skillPath\karpathy-guidelines"
+if (Test-Path $nestedKarpathy) {
+    Remove-Item -Path $nestedKarpathy -Recurse -Force
+}
+Write-Success "Karpathy guidelines installed → $karpathyPath\"
 
 # Install slash command
 Write-Info "Installing /enhance-claude-md command..."
@@ -342,10 +362,12 @@ Write-Info "To uninstall, run:"
 Write-Host ""
 if ($scope -eq "user-level") {
     Write-Host "  Remove-Item -Recurse -Force ~\.claude\skills\claudeforge-skill"
+    Write-Host "  Remove-Item -Recurse -Force ~\.claude\skills\karpathy-guidelines"
     Write-Host "  Remove-Item -Recurse -Force ~\.claude\commands\enhance-claude-md"
     Write-Host "  Remove-Item -Force ~\.claude\agents\claude-md-guardian.md"
 } else {
     Write-Host "  Remove-Item -Recurse -Force .\.claude\skills\claudeforge-skill"
+    Write-Host "  Remove-Item -Recurse -Force .\.claude\skills\karpathy-guidelines"
     Write-Host "  Remove-Item -Recurse -Force .\.claude\commands\enhance-claude-md"
     Write-Host "  Remove-Item -Force .\.claude\agents\claude-md-guardian.md"
 }

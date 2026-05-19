@@ -12,16 +12,20 @@ ClaudeForge is a comprehensive toolkit that eliminates the tedious process of ma
 
 ---
 
-## 🆕 New in v2.0 (Claude Code v2.1.4+ Support)
+## 🆕 What's New
 
-- **Lifecycle Hooks**: Guardian agent automatically checks for updates at session start using SessionStart hooks
-- **Modern Permissions**: All components now use `permissions:` syntax for fine-grained control
-- **Hot-Reload**: Skills automatically reload when modified (no restart needed)
-- **Fork-Safe Mode**: Guardian runs independently with `fork_safe: true` without blocking operations
-- **Version Detection**: Installers validate Claude Code version and ensure compatibility
-- **Auto-Migration**: Seamless upgrade from v1.x with automatic backups
+- **Installable Claude Code plugin** — manifest at `.claude-plugin/plugin.json`; install with `/plugin marketplace add alirezarezvani/ClaudeForge && /plugin install claudeforge`
+- **Hard 150-line cap per CLAUDE.md** — enforced deterministically by `hooks/hooks.json` on `PostToolUse(Edit|Write)` *and* `InstructionsLoaded` (every `load_reason`); larger projects spread content across chained sub-files via `@path` imports
+- **`/sync-claude-md`** — walks every CLAUDE.md, prunes stale references, splits when over the cap, repairs root ↔ sub chains
+- **`/sync-claude-md --weekly`** — orchestrates three forked task-style skills in parallel: `claude-md-drift-audit`, `claude-md-link-check`, `claude-md-dependency-rescan`
+- **Karpathy behavioural guidelines** auto-embedded in every generated CLAUDE.md and installed as a standalone `~/.claude/skills/karpathy-guidelines/` skill scoped to code-file globs
+- **`AGENTS.md` / `.cursorrules` / `.windsurfrules` interop** — `/enhance-claude-md` detects sibling instruction files and chains them via `@`-imports instead of overwriting
+- **`CLAUDE.local.md` personal tier** — per-developer overrides exempt from the cap, gitignored automatically
+- **Layered hook config** — `hooks/hooks-config.json` (committed defaults) + `hooks/hooks-config.local.json` (gitignored) lets developers opt out per machine
+- **Lifecycle hooks**: `SessionStart`, `PreToolUse`, `PostToolUse`, `InstructionsLoaded`, `Stop` (one-line drift summary at session end)
+- **Guardian agent** runs `model: haiku` with a fail-closed contract (Skill-tool only, never auto-commits, aborts on missing validated output)
 
-👉 **Upgrading from v1.x?** See [docs/MIGRATION_V2.md](docs/MIGRATION_V2.md) for migration guide.
+👉 **Upgrading from v1.x?** See [docs/MIGRATION_V2.md](docs/MIGRATION_V2.md).
 
 ---
 
@@ -40,20 +44,29 @@ ClaudeForge is a comprehensive toolkit that eliminates the tedious process of ma
 
 ## 📦 What's Included
 
-### 1. **Skill** (`claudeforge-skill`)
-Core capability for CLAUDE.md analysis, generation, validation, and enhancement
+### Skills
 
-### 2. **Slash Command** (`/enhance-claude-md`)
-Interactive interface with multi-phase discovery workflow. Delegates deep codebase scans to the Explore subagent so the discovery does not bloat the calling session.
+1. **`claudeforge-skill`** (`skill/SKILL.md`) — core analysis / validation / generation engine; runs on `model: haiku`. Scoped via `paths:` to `CLAUDE.md`, `CLAUDE.local.md`, `AGENTS.md`, `.cursorrules`, `.windsurfrules`, and `.claude/rules/*.md` so it auto-loads only when those files are touched.
+2. **`karpathy-guidelines`** (`skill/karpathy-guidelines/SKILL.md`) — Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution. Embedded into every generated CLAUDE.md and installed as a standalone skill `paths:`-scoped to ~23 source-file extensions. Adapted with attribution from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills).
+3. **`claude-md-drift-audit`** (`skill/claude-md-drift-audit/SKILL.md`, forked + `agent: Explore`) — walks the last N days of git history and flags every CLAUDE.md line that references deleted paths, renamed paths, or removed dependencies. Read-only. `/claude-md-drift-audit [days=7]`.
+4. **`claude-md-link-check`** (`skill/claude-md-link-check/SKILL.md`, forked + `agent: Explore`) — verifies every `@path` chain import and every relative markdown link inside every CLAUDE.md resolves. Read-only. `/claude-md-link-check [path-glob]`.
+5. **`claude-md-dependency-rescan`** (`skill/claude-md-dependency-rescan/SKILL.md`, forked + `agent: Explore`) — diffs declared dependencies (`package.json` / `requirements.txt` / `pyproject.toml` / `go.mod` / `Cargo.toml`) against the Tech Stack section of every CLAUDE.md. Read-only. `/claude-md-dependency-rescan [manifest]`.
 
-### 3. **Slash Command** (`/sync-claude-md`)
-Walks every CLAUDE.md in the project, prunes stale references (removed dependencies, deleted files, dead modular links), enforces the **150-line hard cap per file**, and repairs the root ↔ subdirectory chain (markdown links + `@path` imports). Run after refactors, dependency changes, or before cutting a release.
+### Slash commands
 
-### 4. **Guardian Agent** (`claude-md-guardian`)
-Background agent for automatic CLAUDE.md maintenance and synchronization
+- **`/enhance-claude-md`** (`command/enhance-claude-md.md`) — multi-phase init/enhance workflow with `argument-hint`, `when_to_use`, `allowed-tools`, and `disallowedTools` (blocks `WebFetch` / `WebSearch`). Delegates deep codebase scans to the Explore subagent.
+- **`/sync-claude-md`** (`command/sync-claude-md.md`) — inventory → prune stale refs → enforce the 150-line cap → repair root ↔ sub chain. **New `--weekly` flag** orchestrates the three audit skills in parallel before doing sync work.
 
-### 5. **Karpathy Guidelines Skill** (`karpathy-guidelines`)
-Behavioral guardrails — Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution — installed as a standalone skill and automatically embedded into every CLAUDE.md generated or enhanced by `/enhance-claude-md`. Adapted with attribution from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) repository, inspired by Andrej Karpathy's observations on common LLM coding failure modes.
+### Agent
+
+- **`claude-md-guardian`** (`agent/claude-md-guardian.md`) — background maintenance. Runs `model: haiku` with a fail-closed contract: Skill-tool only, aborts on missing validated output, never auto-commits, respects the local hook config.
+
+### Hooks
+
+- **`hooks/hooks.json`** — wires `PostToolUse(Write|Edit)`, `InstructionsLoaded` (all five `load_reason` values), and `Stop` events to scripts under `hooks/`.
+- **`hooks/validate-claude-md.py`** — enforces the 150-line cap deterministically at load time *and* write time; exempts `*.local.md`; exits with stderr feedback on violation.
+- **`hooks/audit-claude-md.py`** — `Stop` hook; one-line CLAUDE.md health summary printed at session end (total tracked / over cap / near cap).
+- **`hooks/hooks-config.json`** + **`hooks/hooks-config.local.json`** — layered config; per-developer overrides without forking the shipped manifest.
 
 ---
 
@@ -217,18 +230,15 @@ See the [examples/](examples/) directory for:
 
 ### **Slash Command: /enhance-claude-md**
 
-**Multi-Phase Workflow:**
-1. **Discovery** - Checks for existing CLAUDE.md, examines project structure
-2. **Analysis** - Determines appropriate action (initialize vs. enhance)
-3. **Task** - Invokes skill or agent to execute workflow
+**Multi-phase workflow** (Discovery → Analysis → Task). Discovery delegates the deep codebase walk to the Explore subagent so it doesn't bloat the calling session. Phase 1 also detects sibling `AGENTS.md` / `.cursorrules` / `.windsurfrules` and chains them via `@`-imports rather than overwriting. Phase 3 invokes `claudeforge-skill` via the Skill tool.
+
+### **Slash Command: /sync-claude-md (with `--weekly`)**
+
+Default mode: inventory every CLAUDE.md, prune stale references, enforce the 150-line cap by splitting into sub-files, repair the root ↔ sub chain. With `--weekly`, **Phase 0** issues the three forked audit skills (`claude-md-drift-audit`, `claude-md-link-check`, `claude-md-dependency-rescan`) in parallel via the Skill tool, aggregates their findings under `## Weekly Audit Summary`, then proceeds. Each forked skill runs in an isolated subagent context (`context: fork`, `agent: Explore`) so audit work doesn't bloat the calling session.
 
 ### **Agent: claude-md-guardian**
 
-**Background Maintenance:**
-- **Auto-Sync** - Updates CLAUDE.md based on detected changes
-- **Smart Detection** - Only updates when significant changes occur
-- **Token-Efficient** - Uses haiku model for routine updates
-- **Milestone-Aware** - Triggers after feature completion, refactoring, etc.
+Runs `model: haiku`, `fork_safe: true`. Hook frontmatter uses Anthropic's canonical keyed-object schema (events: `SessionStart`, `PreToolUse`, `PostToolUse`, `InstructionsLoaded`). **Fail-closed contract**: invokes `claudeforge-skill` exclusively through the Skill tool (never inlines SKILL.md), aborts on missing validated output, never auto-commits, respects `hooks/hooks-config.local.json`.
 
 ---
 
@@ -271,27 +281,30 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- Built for the [Claude Code](https://claude.com/claude-code) community
-- Inspired by best practices from Anthropic's official documentation
-- Special thanks to all contributors and early adopters
+- Built for the [Claude Code](https://claude.com/claude-code) community.
+- The behavioural-guardrail skill adapts the four principles from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) (inspired by Andrej Karpathy's commentary on LLM coding pitfalls). Original prose; attribution preserved in `skill/karpathy-guidelines/SKILL.md`.
+- Several plugin conventions (layered hook config, `Stop` audit hook, command discovery metadata, `paths:` scoping on skills, fail-closed contracts) are adapted from the MIT-licensed [shanraisshan/claude-code-best-practice](https://github.com/shanraisshan/claude-code-best-practice). Patterns implemented in original code with attribution in `CHANGELOG.md`.
+- Anthropic's [Claude Code documentation](https://code.claude.com/docs/en/memory) drove the load-event integrations (`InstructionsLoaded`, all five `load_reason` matchers) and the `context: fork` task-style skills.
 
 ---
 
 ## 🚦 Project Status
 
-**Version:** 1.0.0
+**Version:** 2.1.0 (see [CHANGELOG.md](CHANGELOG.md))
 **Status:** ✅ Stable & Production-Ready
-**Last Updated:** November 12, 2025
+**Requires:** Claude Code 2.1.4+ for hooks/`InstructionsLoaded`/`paths:` features
 
 ---
 
 ## 📊 Quick Stats
 
-- **7** reference CLAUDE.md templates included
-- **100%** native Claude Code format compliance
-- **5** Python modules
-- **3** integrated components (skill, command, agent)
-- **10+** usage examples and scenarios
+- **5** skills (`claudeforge-skill`, `karpathy-guidelines`, plus three forked audit skills)
+- **2** slash commands (`/enhance-claude-md`, `/sync-claude-md` with `--weekly`)
+- **1** agent (`claude-md-guardian`, fail-closed contract)
+- **3** hook scripts wired across `PostToolUse`, `InstructionsLoaded`, `Stop`
+- **5** Python modules under `skill/` (analyzer, validator, generator, template_selector, workflow)
+- **7** reference CLAUDE.md templates under `skill/examples/`
+- **150** — hard line cap per CLAUDE.md, enforced at load time *and* write time
 
 ---
 

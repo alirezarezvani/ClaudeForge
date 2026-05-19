@@ -173,7 +173,7 @@ examples/
 
 ```bash
 # macOS/Linux
-ls -la ~/.claude/commands/enhance-claude-md/
+ls -la ~/.claude/commands/enhance-claude-md.md ~/.claude/commands/sync-claude-md.md
 
 # Windows
 dir $env:USERPROFILE\.claude\commands\enhance-claude-md\

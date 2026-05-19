@@ -56,8 +56,8 @@ if [ -f "CLAUDE.md" ]; then
 
     # Check file length
     lines=$(wc -l < CLAUDE.md)
-    if [ $lines -lt 20 ] || [ $lines -gt 400 ]; then
-        echo "Error: CLAUDE.md length ($lines lines) outside recommended range (20-300)"
+    if [ $lines -lt 20 ] || [ $lines -gt 150 ]; then
+        echo "Error: CLAUDE.md length ($lines lines) outside the 20-150 cap; run /sync-claude-md to split."
         exit 1
     fi
 

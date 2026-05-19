@@ -8,7 +8,7 @@ Examples of modular CLAUDE.md structure for large projects.
 
 - Full-stack projects with distinct frontend/backend
 - Team size > 10 developers
-- Single CLAUDE.md would exceed 300 lines
+- Single CLAUDE.md would exceed the 150-line cap
 - Different teams own different areas
 
 ---

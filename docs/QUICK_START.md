@@ -256,7 +256,7 @@ Claude, invoke claude-md-guardian to update CLAUDE.md
 
 ### Tip 1: Use Modular Architecture for Large Projects
 
-If your CLAUDE.md exceeds 300 lines, split it:
+If your CLAUDE.md approaches or exceeds the 150-line cap, split it (or run `/sync-claude-md` to split for you):
 
 ```bash
 /enhance-claude-md

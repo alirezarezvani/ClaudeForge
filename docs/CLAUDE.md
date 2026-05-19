@@ -19,6 +19,9 @@ Operational guidance for installers, smoke tests, and release management.
 # Verify after install:
 ls -la ~/.claude/skills/claudeforge-skill/
 ls -la ~/.claude/skills/karpathy-guidelines/
+ls -la ~/.claude/skills/claude-md-drift-audit/
+ls -la ~/.claude/skills/claude-md-link-check/
+ls -la ~/.claude/skills/claude-md-dependency-rescan/
 ls -la ~/.claude/commands/enhance-claude-md.md
 ls -la ~/.claude/commands/sync-claude-md.md
 ls -la ~/.claude/agents/claude-md-guardian.md

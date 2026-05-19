@@ -159,6 +159,9 @@ echo ""
 print_info "Installation will create:"
 echo "  • Skill:    $SKILLS_DIR/claudeforge-skill/"
 echo "  • Skill:    $SKILLS_DIR/karpathy-guidelines/"
+echo "  • Skill:    $SKILLS_DIR/claude-md-drift-audit/"
+echo "  • Skill:    $SKILLS_DIR/claude-md-link-check/"
+echo "  • Skill:    $SKILLS_DIR/claude-md-dependency-rescan/"
 echo "  • Command:  $COMMANDS_DIR/enhance-claude-md.md"
 echo "  • Command:  $COMMANDS_DIR/sync-claude-md.md"
 echo "  • Agent:    $AGENTS_DIR/claude-md-guardian.md"
@@ -203,6 +206,21 @@ cp -r skill/karpathy-guidelines "$SKILLS_DIR/karpathy-guidelines"
 # Remove the nested duplicate so the karpathy skill exists once.
 rm -rf "$SKILLS_DIR/claudeforge-skill/karpathy-guidelines"
 print_success "Karpathy guidelines installed → $SKILLS_DIR/karpathy-guidelines/"
+
+# Install the forked task-style audit skills as separate top-level skills
+# so each is invocable standalone (/claude-md-drift-audit etc.) and
+# discoverable by /sync-claude-md --weekly.
+for audit_skill in claude-md-drift-audit claude-md-link-check claude-md-dependency-rescan; do
+    print_info "Installing $audit_skill skill..."
+    audit_target="$SKILLS_DIR/$audit_skill"
+    if [ -d "$audit_target" ]; then
+        print_warning "Existing $audit_skill skill found. Creating backup..."
+        mv "$audit_target" "$audit_target.backup.$(date +%Y%m%d_%H%M%S)"
+    fi
+    cp -r "skill/$audit_skill" "$audit_target"
+    rm -rf "$SKILLS_DIR/claudeforge-skill/$audit_skill"
+    print_success "$audit_skill installed → $audit_target/"
+done
 
 # Install slash commands. Each .md file in command/ is installed as its own
 # top-level command file so it registers as /<name> rather than as a nested
@@ -337,12 +355,18 @@ echo ""
 if [ "$SCOPE" == "user-level" ]; then
     echo "  rm -rf ~/.claude/skills/claudeforge-skill"
     echo "  rm -rf ~/.claude/skills/karpathy-guidelines"
+    echo "  rm -rf ~/.claude/skills/claude-md-drift-audit"
+    echo "  rm -rf ~/.claude/skills/claude-md-link-check"
+    echo "  rm -rf ~/.claude/skills/claude-md-dependency-rescan"
     echo "  rm -f  ~/.claude/commands/enhance-claude-md.md"
     echo "  rm -f  ~/.claude/commands/sync-claude-md.md"
     echo "  rm -f ~/.claude/agents/claude-md-guardian.md"
 else
     echo "  rm -rf ./.claude/skills/claudeforge-skill"
     echo "  rm -rf ./.claude/skills/karpathy-guidelines"
+    echo "  rm -rf ./.claude/skills/claude-md-drift-audit"
+    echo "  rm -rf ./.claude/skills/claude-md-link-check"
+    echo "  rm -rf ./.claude/skills/claude-md-dependency-rescan"
     echo "  rm -f  ./.claude/commands/enhance-claude-md.md"
     echo "  rm -f  ./.claude/commands/sync-claude-md.md"
     echo "  rm -f ./.claude/agents/claude-md-guardian.md"

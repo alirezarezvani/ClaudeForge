@@ -44,12 +44,15 @@ ClaudeForge is a comprehensive toolkit that eliminates the tedious process of ma
 Core capability for CLAUDE.md analysis, generation, validation, and enhancement
 
 ### 2. **Slash Command** (`/enhance-claude-md`)
-Interactive interface with multi-phase discovery workflow
+Interactive interface with multi-phase discovery workflow. Delegates deep codebase scans to the Explore subagent so the discovery does not bloat the calling session.
 
-### 3. **Guardian Agent** (`claude-md-guardian`)
+### 3. **Slash Command** (`/sync-claude-md`)
+Walks every CLAUDE.md in the project, prunes stale references (removed dependencies, deleted files, dead modular links), enforces the **150-line hard cap per file**, and repairs the root ↔ subdirectory chain (markdown links + `@path` imports). Run after refactors, dependency changes, or before cutting a release.
+
+### 4. **Guardian Agent** (`claude-md-guardian`)
 Background agent for automatic CLAUDE.md maintenance and synchronization
 
-### 4. **Karpathy Guidelines Skill** (`karpathy-guidelines`)
+### 5. **Karpathy Guidelines Skill** (`karpathy-guidelines`)
 Behavioral guardrails — Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution — installed as a standalone skill and automatically embedded into every CLAUDE.md generated or enhanced by `/enhance-claude-md`. Adapted with attribution from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) repository, inspired by Andrej Karpathy's observations on common LLM coding failure modes.
 
 ---
@@ -57,6 +60,17 @@ Behavioral guardrails — Think Before Coding, Simplicity First, Surgical Change
 ## 🚀 Quick Start
 
 ### Installation
+
+#### **Claude Code Plugin (recommended)**
+
+ClaudeForge ships as a Claude Code plugin. From any Claude Code session:
+
+```text
+/plugin marketplace add alirezarezvani/ClaudeForge
+/plugin install claudeforge
+```
+
+This installs every component (skills, slash commands, guardian agent) and registers `/enhance-claude-md` and `/sync-claude-md` for any project. Works the same at the user level (available everywhere) or scoped to a single project.
 
 #### **macOS / Linux**
 ```bash

@@ -99,7 +99,8 @@ class ContentGenerator:
             context: Context name ('backend', 'frontend', 'database', etc.)
 
         Returns:
-            Context-specific CLAUDE.md content
+            Context-specific CLAUDE.md content with a back-link to the root
+            CLAUDE.md so Claude can navigate back up the chain.
         """
         generators = {
             'backend': self._generate_backend_file,
@@ -110,7 +111,17 @@ class ContentGenerator:
         }
 
         generator = generators.get(context, self._generate_generic_context_file)
-        return generator()
+        body = generator()
+
+        # Depth-aware back-link: most context dirs are one level deep, but
+        # ``.github`` may sit at the repo root next to the root CLAUDE.md.
+        rel_root = "../CLAUDE.md"
+        backlink = (
+            "> Parent context: see the root [CLAUDE.md]"
+            f"({rel_root}) for project-wide guidelines and behavioural rules.\n"
+            f"> Chained import: `@{rel_root}`\n\n"
+        )
+        return backlink + body
 
     def _generate_backend_file(self) -> str:
         """Generate backend-specific CLAUDE.md."""
@@ -412,22 +423,36 @@ class ContentGenerator:
         return sections
 
     def _generate_navigation_section(self, template: Dict[str, Any]) -> List[str]:
-        """Generate navigation section for modular architecture."""
+        """Generate navigation section for modular architecture.
+
+        Emits both human-readable markdown links and Claude Code ``@`` imports
+        so the chained CLAUDE.md files are loaded automatically when the root
+        file is read.
+        """
         project_type = self.project_context.get('type')
-        links = []
+        targets: List[tuple] = []  # (label, relative_path)
 
         if project_type == 'fullstack':
-            links.append("- [Backend Guidelines](backend/CLAUDE.md)")
-            links.append("- [Frontend Guidelines](frontend/CLAUDE.md)")
-            links.append("- [Database Operations](database/CLAUDE.md)")
+            targets.append(("Backend Guidelines", "backend/CLAUDE.md"))
+            targets.append(("Frontend Guidelines", "frontend/CLAUDE.md"))
+            targets.append(("Database Operations", "database/CLAUDE.md"))
 
         if 'cicd' in self.project_context.get('workflows', []):
-            links.append("- [CI/CD Workflows](.github/CLAUDE.md)")
+            targets.append(("CI/CD Workflows", ".github/CLAUDE.md"))
 
-        if not links:
-            links.append("- [Add links to context-specific CLAUDE.md files]")
+        if not targets:
+            return ["- [Add links to context-specific CLAUDE.md files]"]
 
-        return links
+        lines: List[str] = []
+        for label, path in targets:
+            lines.append(f"- [{label}]({path})")
+        lines.append("")
+        lines.append("Chained context (Claude Code auto-imports these):")
+        lines.append("")
+        for _, path in targets:
+            lines.append(f"@{path}")
+
+        return lines
 
     def _generate_core_principles(self, template: Dict[str, Any], max_count: int = 7) -> List[str]:
         """Generate core principles list."""

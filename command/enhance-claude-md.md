@@ -39,6 +39,14 @@ This command uses the `claude-md-enhancer` skill to initialize or enhance CLAUDE
 
 !`ls -la`
 
+### Deep project scan via Explore agent
+
+For non-trivial repositories, delegate the codebase walk to the **Explore** subagent so the discovery does not bloat this command's context window. Ask it a single, scoped question — for example:
+
+> Walk this repository and report: project type (web_app / api / fullstack / cli / library / mobile / desktop), languages and frameworks detected, primary tech stack files (package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml), team-size indicators (number of contributors, CODEOWNERS), workflow indicators (.github/workflows, Dockerfile, CI configs), and any subdirectories that warrant their own CLAUDE.md (backend/, frontend/, database/, docs/, .github/). Return findings as a compact JSON object. Under 250 words.
+
+Use the **general-purpose** subagent only for research that requires synthesising findings across multiple agents (e.g. comparing detected stack against template registry). Keep agent prompts self-contained and ask for short, structured reports.
+
 ---
 
 ## Phase 2: Analysis - Determine Action

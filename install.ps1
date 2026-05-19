@@ -178,7 +178,8 @@ Write-Host ""
 Write-Info "Installation will create:"
 Write-Host "  • Skill:    $skillsDir\claudeforge-skill\"
 Write-Host "  • Skill:    $skillsDir\karpathy-guidelines\"
-Write-Host "  • Command:  $commandsDir\enhance-claude-md\"
+Write-Host "  • Command:  $commandsDir\enhance-claude-md.md"
+Write-Host "  • Command:  $commandsDir\sync-claude-md.md"
 Write-Host "  • Agent:    $agentsDir\claude-md-guardian.md"
 Write-Host ""
 
@@ -231,17 +232,29 @@ if (Test-Path $nestedKarpathy) {
 }
 Write-Success "Karpathy guidelines installed → $karpathyPath\"
 
-# Install slash command
-Write-Info "Installing /enhance-claude-md command..."
-$commandPath = "$commandsDir\enhance-claude-md"
-if (Test-Path $commandPath) {
-    Write-Warning "Existing command found. Creating backup..."
+# Install slash commands. Each .md file in command/ becomes its own
+# top-level command file so it registers as /<name>. README.md is skipped.
+Write-Info "Installing slash commands..."
+
+# Migrate legacy bundle directory if present.
+$legacyBundle = "$commandsDir\enhance-claude-md"
+if (Test-Path $legacyBundle) {
+    Write-Warning "Legacy command bundle found. Creating backup..."
     $backupName = "enhance-claude-md.backup.$(Get-Date -Format 'yyyyMMdd_HHmmss')"
-    Move-Item -Path $commandPath -Destination "$commandsDir\$backupName" -Force
+    Move-Item -Path $legacyBundle -Destination "$commandsDir\$backupName" -Force
     Write-Success "Backup created"
 }
-Copy-Item -Path "command" -Destination $commandPath -Recurse -Force
-Write-Success "Command installed → $commandPath\"
+
+Get-ChildItem -Path "command" -Filter "*.md" -File | Where-Object { $_.Name -ne "README.md" } | ForEach-Object {
+    $cmdTarget = Join-Path $commandsDir $_.Name
+    if (Test-Path $cmdTarget) {
+        Write-Warning "Existing $($_.Name) found. Creating backup..."
+        $backupName = "$($_.Name).backup.$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+        Move-Item -Path $cmdTarget -Destination (Join-Path $commandsDir $backupName) -Force
+    }
+    Copy-Item -Path $_.FullName -Destination $cmdTarget -Force
+    Write-Success "Command installed → $cmdTarget"
+}
 
 # Install guardian agent
 Write-Info "Installing claude-md-guardian agent..."
@@ -363,12 +376,14 @@ Write-Host ""
 if ($scope -eq "user-level") {
     Write-Host "  Remove-Item -Recurse -Force ~\.claude\skills\claudeforge-skill"
     Write-Host "  Remove-Item -Recurse -Force ~\.claude\skills\karpathy-guidelines"
-    Write-Host "  Remove-Item -Recurse -Force ~\.claude\commands\enhance-claude-md"
+    Write-Host "  Remove-Item -Force ~\.claude\commands\enhance-claude-md.md"
+    Write-Host "  Remove-Item -Force ~\.claude\commands\sync-claude-md.md"
     Write-Host "  Remove-Item -Force ~\.claude\agents\claude-md-guardian.md"
 } else {
     Write-Host "  Remove-Item -Recurse -Force .\.claude\skills\claudeforge-skill"
     Write-Host "  Remove-Item -Recurse -Force .\.claude\skills\karpathy-guidelines"
-    Write-Host "  Remove-Item -Recurse -Force .\.claude\commands\enhance-claude-md"
+    Write-Host "  Remove-Item -Force .\.claude\commands\enhance-claude-md.md"
+    Write-Host "  Remove-Item -Force .\.claude\commands\sync-claude-md.md"
     Write-Host "  Remove-Item -Force .\.claude\agents\claude-md-guardian.md"
 }
 Write-Host ""

@@ -12,9 +12,10 @@ import re
 class BestPracticesValidator:
     """Validates CLAUDE.md files against best practices and guidelines."""
 
-    # Maximum recommended line count
-    MAX_RECOMMENDED_LINES = 300
-    WARNING_THRESHOLD_LINES = 200
+    # Hard cap: every CLAUDE.md (root or modular) must stay under this.
+    # Modular split is required when content would exceed this cap.
+    MAX_RECOMMENDED_LINES = 150
+    WARNING_THRESHOLD_LINES = 120
 
     # Minimum content requirements
     MIN_LINES = 20

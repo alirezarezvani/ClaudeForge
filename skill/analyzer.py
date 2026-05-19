@@ -165,17 +165,23 @@ class CLAUDEMDAnalyzer:
         issues = []
 
         # Check file length
-        if self.line_count > 400:
+        if self.line_count > 250:
             issues.append({
                 "type": "length_critical",
                 "severity": "high",
-                "message": f"File is too long ({self.line_count} lines). Recommended: split into modular files."
+                "message": f"File is too long ({self.line_count} lines). Hard cap is 150; split into modular files."
             })
-        elif self.line_count > 300:
+        elif self.line_count > 150:
+            issues.append({
+                "type": "length_warning",
+                "severity": "high",
+                "message": f"File exceeds the 150-line cap ({self.line_count} lines). Split now."
+            })
+        elif self.line_count > 120:
             issues.append({
                 "type": "length_warning",
                 "severity": "medium",
-                "message": f"File exceeds recommended 300 lines ({self.line_count} lines). Consider splitting."
+                "message": f"File is approaching the 150-line cap ({self.line_count} lines)."
             })
 
         # Check if file is too short
@@ -238,12 +244,13 @@ class CLAUDEMDAnalyzer:
         """
         score = 0
 
-        # Length appropriateness (25 points)
-        if 50 <= self.line_count <= 300:
+        # Length appropriateness (25 points). Hard cap is 150 lines; anything
+        # above that loses points sharply because it indicates context bloat.
+        if 50 <= self.line_count <= 150:
             score += 25
-        elif 30 <= self.line_count < 50 or 300 < self.line_count <= 400:
+        elif 30 <= self.line_count < 50 or 150 < self.line_count <= 200:
             score += 15
-        elif self.line_count > 400:
+        elif self.line_count > 200:
             score += 5
         else:
             score += 10
@@ -329,9 +336,9 @@ class CLAUDEMDAnalyzer:
                     recommendations.append(f"CRITICAL: {issue['message']}")
 
         # Length recommendations
-        if self.line_count > 300:
+        if self.line_count > 150:
             recommendations.append(
-                "Reduce root CLAUDE.md to <150 lines - move detailed guides to context-specific files"
+                "Reduce this CLAUDE.md to <=150 lines (hard cap) - move detail to context-specific files and chain them via @path imports"
             )
         elif self.line_count < 30:
             recommendations.append(

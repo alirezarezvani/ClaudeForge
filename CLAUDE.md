@@ -6,12 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**ClaudeForge** is a comprehensive toolkit for automated CLAUDE.md creation, enhancement, and maintenance for Claude Code projects. The repository consists of four integrated components:
+**ClaudeForge** is a Claude Code plugin (manifest at `.claude-plugin/plugin.json`) and standalone toolkit for the CLAUDE.md lifecycle: initialise, enhance, sync, and modularise CLAUDE.md files with a hard 150-line cap, automatic chaining via `@path` imports, and Karpathy behavioural guardrails. Works in any Claude Code or Claude.cowork project. The repository consists of five integrated components:
 
-1. **Skill** (`claudeforge-skill`) - Core Python modules for analysis, generation, and validation
-2. **Slash Command** (`/enhance-claude-md`) - Interactive multi-phase discovery workflow
-3. **Guardian Agent** (`claude-md-guardian`) - Background maintenance agent
-4. **Karpathy Guidelines Skill** (`karpathy-guidelines`) - Behavioral guardrails embedded into every generated CLAUDE.md and installed as a standalone skill, adapted with attribution from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) repository
+1. **Skill** (`claudeforge-skill`) - Core Python modules for analysis, generation, and validation. Enforces a 150-line hard cap per CLAUDE.md.
+2. **Slash Command** (`/enhance-claude-md`) - Interactive multi-phase discovery workflow. Delegates deep codebase scans to the Explore subagent to avoid context bloat.
+3. **Slash Command** (`/sync-claude-md`) - Walks every CLAUDE.md in the project, prunes stale references, enforces the 150-line cap, and repairs the root ↔ subdirectory chain (markdown links + `@path` imports).
+4. **Guardian Agent** (`claude-md-guardian`) - Background maintenance agent
+5. **Karpathy Guidelines Skill** (`karpathy-guidelines`) - Behavioral guardrails embedded into every generated CLAUDE.md and installed as a standalone skill, adapted with attribution from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) repository
 
 ---
 

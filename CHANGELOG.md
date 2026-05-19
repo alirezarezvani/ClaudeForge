@@ -11,10 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Karpathy Guidelines skill** (`skill/karpathy-guidelines/SKILL.md`): a behavioral-guardrail skill installed alongside ClaudeForge that applies to every coding, review, and refactoring task. Covers four principles — Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution — adapted with attribution from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) repository.
-- **Automatic embedding into every CLAUDE.md**: `skill/template_selector.py` and `skill/generator.py` now insert a `## Behavioral Guidelines` section into every generated and enhanced CLAUDE.md, so the principles ship with every project that runs `/enhance-claude-md`.
-- **Installer support for the new skill**: `install.sh` and `install.ps1` now copy the skill to `~/.claude/skills/karpathy-guidelines/` (or the project-level equivalent) and include it in the uninstall instructions.
-- **Slash command documentation**: `command/enhance-claude-md.md` documents the always-on Behavioral Guidelines section as a required part of the workflow.
+- **Claude Code plugin manifest** (`.claude-plugin/plugin.json`): ClaudeForge is now installable as a Claude Code plugin via `/plugin marketplace add alirezarezvani/ClaudeForge && /plugin install claudeforge`. Manifest registers all skills, commands, and the guardian agent in one bundle.
+- **`/sync-claude-md` slash command** (`command/sync-claude-md.md`): walks every CLAUDE.md in the project, prunes stale references (removed dependencies, deleted paths, broken modular links), enforces the 150-line cap, and repairs the root ↔ sub chain. Designed to run after refactors, dependency changes, or before a release.
+- **Karpathy Guidelines skill** (`skill/karpathy-guidelines/SKILL.md`): behavioural-guardrail skill applied to every coding, review, and refactoring task. Covers four principles — Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution — adapted with attribution from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) repository.
+- **Automatic embedding into every CLAUDE.md**: `skill/template_selector.py` and `skill/generator.py` insert a `## Behavioral Guidelines` section into every generated and enhanced CLAUDE.md.
+- **Modular chaining via `@path` imports**: the modular root generator emits both human-readable markdown links and Claude Code `@path/to/CLAUDE.md` imports for every sub-CLAUDE.md. Sub-files now get a back-link header pointing to the root file so navigation is bidirectional.
+- **Explore-agent delegation in `/enhance-claude-md`**: deep project scans are delegated to the Explore subagent to keep the calling session's context lean.
+
+### Changed
+
+- **Hard 150-line cap per CLAUDE.md**: `validator.MAX_RECOMMENDED_LINES` lowered from 300 to 150 (warning at 120). `template_selector.TEAM_SIZE_TEMPLATES` target lines lowered to fit (solo 75 / small 100 / medium 125 / large 150). `analyzer` length thresholds and quality scoring rebased on the new cap. Projects that need more content split it across chained sub-files instead of growing the root.
+- **Installers register commands as top-level files**: `install.sh` and `install.ps1` now install each `.md` under `command/` as its own `~/.claude/commands/<name>.md` (registering as `/<name>`) rather than bundling the whole directory under one path. Legacy `~/.claude/commands/enhance-claude-md/` bundles are backed up automatically on upgrade.
+
+### Verified
+
+- Smoke tests: validator constants, all four team-size templates, generator output for solo/small/medium/large + library presets (all ≤ 150 lines), context files with back-links, `@`-import chain in modular root, idempotent `merge_with_existing`, validator status transitions (pass / warning / fail) at the new cap, analyzer quality score differential between compliant and bloated files, plugin manifest JSON shape and that every referenced path exists on disk.
 
 ---
 

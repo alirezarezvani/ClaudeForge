@@ -20,7 +20,10 @@
   ],
   "skills": [
     "./skill",
-    "./skill/karpathy-guidelines"
+    "./skill/karpathy-guidelines",
+    "./skill/claude-md-drift-audit",
+    "./skill/claude-md-link-check",
+    "./skill/claude-md-dependency-rescan"
   ],
   "commands": [
     "./command/enhance-claude-md.md",

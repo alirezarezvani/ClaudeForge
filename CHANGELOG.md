@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (wave 4 — forked task-style audit skills)
+
+Three new task-style skills under `skill/`, each using Anthropic's `context: fork` + `agent: Explore` so they run in an isolated subagent context (no caller chat history, ≤500-token summary back to the main session):
+
+- **`claude-md-drift-audit`** (`skill/claude-md-drift-audit/SKILL.md`, 51 lines): walks the last N days of git history (default 7), cross-references every CLAUDE.md and `.claude/rules/*.md` against deleted paths / renamed paths / removed deps from that window, returns a punch list. Read-only.
+- **`claude-md-link-check`** (`skill/claude-md-link-check/SKILL.md`, 51 lines): verifies every `@path` chain import and every relative markdown link inside every CLAUDE.md resolves to an existing file. Returns broken links with file:line refs. Read-only.
+- **`claude-md-dependency-rescan`** (`skill/claude-md-dependency-rescan/SKILL.md`, 54 lines): re-detects the project's tech stack from `package.json` / `requirements.txt` / `pyproject.toml` / `go.mod` / `Cargo.toml`, diffs against every CLAUDE.md's Tech Stack section, returns added / removed / renamed lists per file. Read-only.
+
+All three are standalone-invocable (`/claude-md-drift-audit`, etc.) and orchestrated by **`/sync-claude-md --weekly`**, which now opens with a Phase 0 that issues the three skills in parallel via the Skill tool before doing the normal sync work. Plugin manifest registers all five skills (the two existing + three new).
+
 ### Added (wave 3 — adoption hardening)
 
 - **Command discovery metadata** (`command/enhance-claude-md.md`, `command/sync-claude-md.md`): both commands now declare `allowed-tools`, `disallowedTools` (blocks `WebFetch`/`WebSearch`), `argument-hint`, and `when_to_use` so Claude Code can auto-suggest and zero-prompt them.

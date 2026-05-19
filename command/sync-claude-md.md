@@ -1,9 +1,11 @@
 ---
 description: Walk every CLAUDE.md in the project, prune stale references (removed deps, deleted paths, broken modular links), enforce the 150-line cap by splitting into sub-files, and repair the root ↔ subdirectory chain (markdown links + @path imports).
-argument-hint: "[--dry-run | --paths-only | <directory>]"
+argument-hint: "[--weekly | --dry-run | --paths-only | <directory>]"
 when_to_use: |
   Run after refactors, dependency changes, deleted directories, or when any single
-  CLAUDE.md is near the 150-line cap. Also run before cutting a release so the
+  CLAUDE.md is near the 150-line cap. Use --weekly for a periodic audit pass that
+  parallel-invokes the drift-audit, link-check, and dependency-rescan forked skills
+  before doing the normal sync work. Also run before cutting a release so the
   documentation tag-snapshot is truthful.
 allowed-tools:
   - Read
@@ -44,6 +46,20 @@ permissions:
 # /sync-claude-md — CLAUDE.md Sync & Cleanup
 
 This command keeps every CLAUDE.md in the project current, lean, and chained. Apply the Karpathy behavioural guidelines (`~/.claude/skills/karpathy-guidelines/SKILL.md`) while running it: state assumptions, keep changes surgical, define verification per step.
+
+---
+
+## Phase 0: Weekly Audit (only when `--weekly` is passed)
+
+When the user invokes `/sync-claude-md --weekly`, run the three audit skills in parallel via the **Skill tool** before touching any file. Each is forked (`context: fork`, `agent: Explore`) so its work happens in an isolated context and only the summary returns:
+
+1. `Skill(claude-md-drift-audit)` — references against last 7 days of git history.
+2. `Skill(claude-md-link-check)` — `@path` imports and markdown links resolve.
+3. `Skill(claude-md-dependency-rescan)` — Tech Stack sections vs. manifest files.
+
+Issue all three in a single message so they execute concurrently. Wait for all three to return, then aggregate their findings into one report at the top of this run — `## Weekly Audit Summary` with one subsection per skill. If any audit returns findings, proceed to Phase 1 with those findings in mind so the sync work resolves them. If all three are clean, skip to Phase 4 (chain repair) — no edits required.
+
+When `--weekly` is not passed, skip this phase entirely and start at Phase 1.
 
 ---
 

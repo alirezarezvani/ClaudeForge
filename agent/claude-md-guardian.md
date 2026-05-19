@@ -16,18 +16,26 @@ field: documentation
 expertise: intermediate
 fork_safe: true
 hooks:
-  - event: SessionStart
-    commands:
-      - echo "Guardian: Checking for CLAUDE.md updates..."
-    once: false
-  - event: PreToolUse
-    matcher: Write
-    commands:
-      - echo "Guardian: Validating CLAUDE.md changes..."
-  - event: PostToolUse
-    matcher: Write
-    commands:
-      - echo "Guardian: CLAUDE.md update complete"
+  SessionStart:
+    - matcher: ""
+      hooks:
+        - type: command
+          command: "echo 'Guardian: checking for CLAUDE.md drift on session start'"
+  PreToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "echo 'Guardian: validating CLAUDE.md change'"
+  PostToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "python3 ${CLAUDE_PLUGIN_ROOT:-${CLAUDE_PROJECT_DIR}}/hooks/validate-claude-md.py"
+  InstructionsLoaded:
+    - matcher: "session_start|nested_traversal|path_glob_match|include|compact"
+      hooks:
+        - type: command
+          command: "python3 ${CLAUDE_PLUGIN_ROOT:-${CLAUDE_PROJECT_DIR}}/hooks/validate-claude-md.py"
 ---
 
 # CLAUDE.md Guardian Agent

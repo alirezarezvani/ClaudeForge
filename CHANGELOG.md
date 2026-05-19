@@ -9,7 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Guardian agent hook frontmatter** (`agent/claude-md-guardian.md`): rewritten from the array-of-objects shape (`hooks: [{ event, commands }]`) to Anthropic's canonical keyed-object shape (`hooks: { EventName: [{ matcher, hooks: [{ type: "command", command }] }] }`). The previous shape did not match the documented schema, so the guardian's hooks did not fire. ([docs](https://code.claude.com/docs/en/hooks))
+
 ### Added
+
+- **Plugin-level hooks** (`hooks/hooks.json` + `hooks/validate-claude-md.py`): every `Edit`/`Write` to a `CLAUDE.md` and every `InstructionsLoaded` event (all five `load_reason` values — `session_start`, `nested_traversal`, `path_glob_match`, `include`, `compact`) runs `validate-claude-md.py`, which exits `2` with stderr feedback when the touched file exceeds the 150-line cap. Turns the cap from advisory into deterministic enforcement at load time and write time.
+- **`generate_rules_file()` on `ContentGenerator`** (`skill/generator.py`): emits path-scoped `.claude/rules/*.md` instruction files with `name`, `description`, and `paths:` glob frontmatter. Claude loads these conditionally when accessing files that match the globs, so file-type-specific guidance (e.g. backend-only standards) no longer has to live in the root CLAUDE.md.
+- **`AGENTS.md` / `.cursorrules` / `.windsurfrules` interop**: `command/enhance-claude-md.md` Phase 1 now detects these sibling instruction files, and `ContentGenerator.generate_root_file()` prepends an `## External Instructions` section with `@AGENTS.md`-style imports when `project_context['existing_instruction_files']` lists them. Repos already using other agent tooling can adopt ClaudeForge without losing their existing instructions.
+
+### Added (earlier in this Unreleased window)
 
 - **Claude Code plugin manifest** (`.claude-plugin/plugin.json`): ClaudeForge is now installable as a Claude Code plugin via `/plugin marketplace add alirezarezvani/ClaudeForge && /plugin install claudeforge`. Manifest registers all skills, commands, and the guardian agent in one bundle.
 - **`/sync-claude-md` slash command** (`command/sync-claude-md.md`): walks every CLAUDE.md in the project, prunes stale references (removed dependencies, deleted paths, broken modular links), enforces the 150-line cap, and repairs the root ↔ sub chain. Designed to run after refactors, dependency changes, or before a release.

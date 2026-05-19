@@ -27,16 +27,48 @@ class ContentGenerator:
         """
         Generate root CLAUDE.md file (navigation hub).
 
+        When the surrounding project already contains ``AGENTS.md``,
+        ``.cursorrules``, or ``.windsurfrules`` (passed via
+        ``project_context['existing_instruction_files']``), the generated root
+        file prepends ``@`` imports for them so Claude inherits their content
+        instead of duplicating it.
+
         Returns:
-            Complete CLAUDE.md content as string
+            Complete CLAUDE.md content as string.
         """
         template = self.template_selector.select_template()
 
-        # Use template selector's customization
         if template.get('modular_recommended'):
-            return self._generate_modular_root(template)
+            body = self._generate_modular_root(template)
         else:
-            return self._generate_standalone_file(template)
+            body = self._generate_standalone_file(template)
+
+        return self._prepend_existing_instruction_imports(body)
+
+    def _prepend_existing_instruction_imports(self, body: str) -> str:
+        """Insert ``@`` import lines for any AGENTS.md / cursor / windsurf files."""
+        existing = self.project_context.get('existing_instruction_files') or []
+        supported = ('AGENTS.md', '.cursorrules', '.windsurfrules')
+        imports = [name for name in supported if name in existing]
+        if not imports:
+            return body
+
+        # Insert right after the intro paragraph (first blank line after the H1).
+        lines = body.split('\n')
+        out: List[str] = []
+        inserted = False
+        for i, line in enumerate(lines):
+            out.append(line)
+            if not inserted and i > 0 and line == '' and lines[i - 1].strip():
+                out.append('## External Instructions')
+                out.append('')
+                out.append('Chained from sibling instruction files in this repo:')
+                out.append('')
+                for name in imports:
+                    out.append(f"@{name}")
+                out.append('')
+                inserted = True
+        return '\n'.join(out) if inserted else body
 
     def _generate_modular_root(self, template: Dict[str, Any]) -> str:
         """Generate root file for modular architecture (navigation hub)."""
@@ -122,6 +154,48 @@ class ContentGenerator:
             f"> Chained import: `@{rel_root}`\n\n"
         )
         return backlink + body
+
+    def generate_rules_file(
+        self,
+        name: str,
+        description: str,
+        paths: List[str],
+        body: str,
+    ) -> str:
+        """Emit a path-scoped ``.claude/rules/*.md`` instruction file.
+
+        Anthropic loads these conditionally when Claude accesses files matching
+        any of the ``paths:`` globs. Use this for sections that would otherwise
+        bloat the root CLAUDE.md — e.g. backend-only standards that only matter
+        when editing files under ``src/backend/**``.
+
+        Args:
+            name: Skill-style identifier, kebab-case (e.g. ``backend-rules``).
+            description: Single-sentence summary (used by Claude for matching).
+            paths: List of glob patterns that trigger the load.
+            body: Markdown content (excluding frontmatter and title).
+
+        Returns:
+            Complete file content ready to write to ``.claude/rules/<name>.md``.
+            Stays within the 150-line cap unless the caller passes a body that
+            already exceeds it; the cap is enforced by the validator hook.
+        """
+        if not paths:
+            raise ValueError("paths must be a non-empty list of glob patterns")
+
+        lines: List[str] = ["---"]
+        lines.append(f"name: {name}")
+        lines.append(f"description: {description}")
+        lines.append("paths:")
+        for glob in paths:
+            lines.append(f"  - {glob}")
+        lines.append("---")
+        lines.append("")
+        lines.append(f"# {name.replace('-', ' ').title()}")
+        lines.append("")
+        lines.append(body.strip())
+        lines.append("")
+        return "\n".join(lines)
 
     def _generate_backend_file(self) -> str:
         """Generate backend-specific CLAUDE.md."""

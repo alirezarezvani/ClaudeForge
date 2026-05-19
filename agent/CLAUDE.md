@@ -26,19 +26,23 @@ Guidelines for the `claude-md-guardian` background-maintenance agent.
 
 ## v2.0.0+ Frontmatter Reference
 
+Hooks use Anthropic's canonical keyed-object schema (event → array of `{ matcher, hooks: [{ type, command }] }`):
+
 ```yaml
----
-name: claude-md-guardian
-permissions: [Bash, Read, Write, Edit, Grep, Glob, Skill]
-model: haiku
-color: purple
-fork_safe: true
 hooks:
-  - SessionStart
-  - PreToolUse
-  - PostToolUse
----
+  PostToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/validate-claude-md.py"
+  InstructionsLoaded:
+    - matcher: "session_start|nested_traversal|path_glob_match|include|compact"
+      hooks:
+        - type: command
+          command: "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/validate-claude-md.py"
 ```
+
+The array-of-`{event, commands}` shape used in earlier versions did not match the documented schema and silently did not fire.
 
 ## Skill ↔ Agent Integration
 
@@ -46,9 +50,10 @@ The agent uses `claude-md-enhancer` (the skill's frontmatter name; installed as 
 
 Hook responsibilities:
 
-- **SessionStart** — check `git diff`; if significant change is detected, invoke the skill for an incremental update.
+- **SessionStart** — check `git diff`; if significant drift is detected, invoke the skill for an incremental update.
 - **PreToolUse** — validate before a CLAUDE.md edit lands.
-- **PostToolUse** — after Edit/Write to any CLAUDE.md, run `BestPracticesValidator`, report the quality score, suggest improvements. Refuse to leave the file over 150 lines.
+- **PostToolUse** — after `Edit`/`Write` to any CLAUDE.md, the plugin-level `hooks/hooks.json` runs `hooks/validate-claude-md.py`. The script exits `2` with stderr feedback when the file is over 150 lines; the guardian then proposes a `/sync-claude-md` run.
+- **InstructionsLoaded** — same script fires on every `load_reason` (`session_start`, `nested_traversal`, `path_glob_match`, `include`, `compact`), so the cap is enforced deterministically at load time, not just at write time.
 
 ## Agent ↔ Git
 

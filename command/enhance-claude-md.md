@@ -39,6 +39,12 @@ This command uses the `claude-md-enhancer` skill to initialize or enhance CLAUDE
 
 !`ls -la`
 
+### Check for sibling agent / rule files
+
+If `AGENTS.md`, `.cursorrules`, or `.windsurfrules` exists, ClaudeForge will preserve it and chain it from the root CLAUDE.md via `@AGENTS.md` (or the equivalent) instead of overwriting. Detect them now:
+
+!`for f in AGENTS.md .cursorrules .windsurfrules; do [ -f "$f" ] && echo "found: $f ($(wc -l < "$f") lines)" || echo "absent: $f"; done`
+
 ### Deep project scan via Explore agent
 
 For non-trivial repositories, delegate the codebase walk to the **Explore** subagent so the discovery does not bloat this command's context window. Ask it a single, scoped question — for example:

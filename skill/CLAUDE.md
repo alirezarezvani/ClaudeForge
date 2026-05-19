@@ -31,7 +31,7 @@ Five modules live under `skill/`:
 - **`analyzer.py`** — `CLAUDEMDAnalyzer`: analyses existing files; quality scoring (0–100) across length, completeness, formatting, specificity, modularity.
 - **`validator.py`** — `BestPracticesValidator`: checks file length (hard cap 150, warning at 120), required sections, formatting, anti-patterns.
 - **`template_selector.py`** — `TemplateSelector`: maps project type + team size to a template; all team-size targets are ≤ 150 lines.
-- **`generator.py`** — `ContentGenerator`: writes root + context files, emits `@path` chain imports, prepends sub-file back-links, idempotent `merge_with_existing`.
+- **`generator.py`** — `ContentGenerator`: writes root + context files, emits `@path` chain imports, prepends sub-file back-links, idempotent `merge_with_existing`. Also exposes `generate_rules_file(name, description, paths, body)` for path-scoped `.claude/rules/*.md` files (loaded lazily by Claude when accessed files match the `paths:` globs) and prepends `@AGENTS.md`-style imports when `project_context['existing_instruction_files']` lists sibling instruction files.
 
 ## Required Output Sections
 

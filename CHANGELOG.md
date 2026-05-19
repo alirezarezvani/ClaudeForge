@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (wave 3 — adoption hardening)
+
+- **Command discovery metadata** (`command/enhance-claude-md.md`, `command/sync-claude-md.md`): both commands now declare `allowed-tools`, `disallowedTools` (blocks `WebFetch`/`WebSearch`), `argument-hint`, and `when_to_use` so Claude Code can auto-suggest and zero-prompt them.
+- **Path-scoped Karpathy guidelines** (`skill/karpathy-guidelines/SKILL.md`): `paths:` glob on code-file extensions (`*.py`, `*.ts`, `*.go`, `*.rs`, etc.) so the guardrails load only when editing code, not when editing markdown or data.
+- **Cheaper skill execution** (`skill/SKILL.md`): `model: haiku`, `effort: medium`, and `paths:` scoping the skill to CLAUDE.md / AGENTS.md / `.claude/rules/*.md` so validator + generator passes run cheaply without affecting the user-facing model.
+- **`CLAUDE.local.md` personal tier**: `validator.BestPracticesValidator` now accepts `filename=` and waives the 150-line cap for any `*.local.md` file. `hooks/validate-claude-md.py` is exempt-suffix aware too. `.gitignore` excludes `CLAUDE.local.md`, `**/CLAUDE.local.md`, `.claude/settings.local.json`, and `hooks/hooks-config.local.json`.
+- **Layered hook config** (`hooks/hooks-config.json` shared + `hooks/hooks-config.local.json` gitignored): `validate-claude-md.py` merges the two and honours `validateClaudeMd.enabled: false`, `maxLines`, `exemptFilenameSuffix`, and `exitCodeOnViolation`. Teams can opt out per developer without forking the shipped config.
+- **`Stop` audit hook** (`hooks/audit-claude-md.py` + entry in `hooks/hooks.json`): prints a 1-line summary to stderr at session end — total CLAUDE.md tracked, count over the cap, count near it — so users see drift before the session's context is lost.
+- **Fail-closed contract on guardian** (`agent/claude-md-guardian.md` Safety & Validation section): the guardian now states it invokes `claude-md-enhancer` exclusively through the Skill tool (never paraphrases SKILL.md content), aborts on missing validated output, never auto-commits, and respects the local hook config.
+
+Patterns adapted (with attribution and in original prose) from the MIT-licensed [shanraisshan/claude-code-best-practice](https://github.com/shanraisshan/claude-code-best-practice).
+
 ### Fixed
 
 - **Guardian agent hook frontmatter** (`agent/claude-md-guardian.md`): rewritten from the array-of-objects shape (`hooks: [{ event, commands }]`) to Anthropic's canonical keyed-object shape (`hooks: { EventName: [{ matcher, hooks: [{ type: "command", command }] }] }`). The previous shape did not match the documented schema, so the guardian's hooks did not fire. ([docs](https://code.claude.com/docs/en/hooks))

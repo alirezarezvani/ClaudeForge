@@ -1,6 +1,25 @@
 ---
 name: claude-md-enhancer
 description: Analyzes, generates, and enhances CLAUDE.md files for any project type using best practices, modular architecture support, and tech stack customization. Use when setting up new projects, improving existing CLAUDE.md files, or establishing AI-assisted development standards.
+model: haiku
+effort: medium
+paths:
+  - "**/CLAUDE.md"
+  - "**/CLAUDE.local.md"
+  - "**/AGENTS.md"
+  - "**/.cursorrules"
+  - "**/.windsurfrules"
+  - "**/.claude/rules/*.md"
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - "Bash(ls:*)"
+  - "Bash(find:*)"
+  - "Bash(git:*)"
+  - "Bash(wc:*)"
 permissions:
   allow:
     - Read
@@ -8,9 +27,9 @@ permissions:
     - Edit
     - Glob
     - Grep
-    - Bash(ls:*)
-    - Bash(find:*)
-    - Bash(git:*)
+    - "Bash(ls:*)"
+    - "Bash(find:*)"
+    - "Bash(git:*)"
 ---
 
 # CLAUDE.md File Enhancer

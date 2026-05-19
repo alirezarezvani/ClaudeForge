@@ -17,7 +17,32 @@ import json
 import os
 import sys
 
-MAX_LINES = 150
+DEFAULT_MAX_LINES = 150
+DEFAULT_EXEMPT_SUFFIX = ".local.md"
+DEFAULT_VIOLATION_RC = 2
+
+
+def _load_config() -> dict:
+    """Merge ``hooks-config.json`` and optional ``hooks-config.local.json``.
+
+    Local file overrides the shared one key-by-key inside ``validateClaudeMd``.
+    Missing files are silently ignored — the script falls back to defaults.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    shared = os.path.join(here, "hooks-config.json")
+    local = os.path.join(here, "hooks-config.local.json")
+    cfg: dict = {}
+    for path in (shared, local):
+        if not os.path.exists(path):
+            continue
+        try:
+            with open(path, encoding="utf-8") as fh:
+                data = json.load(fh)
+        except (OSError, json.JSONDecodeError):
+            continue
+        validate_block = data.get("validateClaudeMd") or {}
+        cfg.update(validate_block)
+    return cfg
 
 
 def _candidate_paths(payload: dict) -> list[str]:
@@ -42,9 +67,13 @@ def _candidate_paths(payload: dict) -> list[str]:
     return paths
 
 
-def _is_claude_md(path: str) -> bool:
+def _is_claude_md(path: str, exempt_suffix: str) -> bool:
     base = os.path.basename(path)
-    return base == "CLAUDE.md" or base.endswith(".claude/rules") or "/.claude/rules/" in path
+    # Personal-tier overrides (CLAUDE.local.md and any matching suffix) are
+    # exempt from the cap — they live outside the chained team-shared tree.
+    if base.endswith(exempt_suffix):
+        return False
+    return base == "CLAUDE.md" or "/.claude/rules/" in path
 
 
 def main() -> int:
@@ -59,16 +88,23 @@ def main() -> int:
     except json.JSONDecodeError:
         return 0
 
+    cfg = _load_config()
+    if cfg.get("enabled") is False:
+        return 0
+    max_lines = int(cfg.get("maxLines", DEFAULT_MAX_LINES))
+    exempt_suffix = str(cfg.get("exemptFilenameSuffix", DEFAULT_EXEMPT_SUFFIX))
+    violation_rc = int(cfg.get("exitCodeOnViolation", DEFAULT_VIOLATION_RC))
+
     violations: list[tuple[str, int]] = []
     for path in _candidate_paths(payload):
-        if not _is_claude_md(path) or not os.path.exists(path):
+        if not _is_claude_md(path, exempt_suffix) or not os.path.exists(path):
             continue
         try:
             with open(path, encoding="utf-8") as fh:
                 line_count = sum(1 for _ in fh)
         except OSError:
             continue
-        if line_count > MAX_LINES:
+        if line_count > max_lines:
             violations.append((path, line_count))
 
     if not violations:
@@ -76,11 +112,11 @@ def main() -> int:
 
     for path, line_count in violations:
         print(
-            f"ClaudeForge: {path} is {line_count} lines (cap is {MAX_LINES}). "
+            f"ClaudeForge: {path} is {line_count} lines (cap is {max_lines}). "
             "Run /sync-claude-md to split into chained sub-files.",
             file=sys.stderr,
         )
-    return 2
+    return violation_rc
 
 
 if __name__ == "__main__":

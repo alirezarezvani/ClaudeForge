@@ -1,18 +1,34 @@
 ---
-description: Initialize or enhance CLAUDE.md files using the claude-md-enhancer skill with interactive workflow and 100% native format compliance
+description: Initialize or enhance a CLAUDE.md (and chained sub-CLAUDE.md files) for the current project using the claude-md-enhancer skill. Delegates deep codebase scans to the Explore subagent and stays within the 150-line cap.
+argument-hint: "[--init | --enhance | <path-to-CLAUDE.md>]"
+when_to_use: |
+  Use whenever a project has no CLAUDE.md, when an existing one is over 150 lines,
+  when an /init result needs to be hardened against context bloat, or when a repo
+  already uses AGENTS.md / .cursorrules / .windsurfrules and you want a Claude-
+  aware root that chains to them via @-imports instead of overwriting.
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Glob
+  - Grep
+  - Skill
+  - "Bash(ls:*)"
+  - "Bash(find:*)"
+  - "Bash(git status:*)"
+  - "Bash(git diff:*)"
+  - "Bash(wc:*)"
+disallowedTools:
+  - WebFetch
+  - WebSearch
 permissions:
   allow:
-    - Bash(ls:*)
-    - Bash(find:*)
-    - Bash(git status:*)
+    - "Bash(ls:*)"
+    - "Bash(find:*)"
+    - "Bash(git status:*)"
     - Read
     - Glob
     - Skill
-hooks:
-  - matcher: ""
-    once: true
-    commands:
-      - echo "Starting CLAUDE.md enhancement workflow"
 ---
 
 # CLAUDE.md Enhancer Command

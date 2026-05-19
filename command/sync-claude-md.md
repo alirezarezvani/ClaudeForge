@@ -1,26 +1,44 @@
 ---
-description: Walk every CLAUDE.md in the project, prune stale references, enforce the 150-line cap, and re-chain root ↔ subdirectory files.
+description: Walk every CLAUDE.md in the project, prune stale references (removed deps, deleted paths, broken modular links), enforce the 150-line cap by splitting into sub-files, and repair the root ↔ subdirectory chain (markdown links + @path imports).
+argument-hint: "[--dry-run | --paths-only | <directory>]"
+when_to_use: |
+  Run after refactors, dependency changes, deleted directories, or when any single
+  CLAUDE.md is near the 150-line cap. Also run before cutting a release so the
+  documentation tag-snapshot is truthful.
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Glob
+  - Grep
+  - Skill
+  - "Bash(ls:*)"
+  - "Bash(find:*)"
+  - "Bash(git status:*)"
+  - "Bash(git diff:*)"
+  - "Bash(wc:*)"
+  - "Bash(grep:*)"
+  - "Bash(cat:*)"
+  - "Bash(test:*)"
+disallowedTools:
+  - WebFetch
+  - WebSearch
 permissions:
   allow:
-    - Bash(ls:*)
-    - Bash(find:*)
-    - Bash(git status:*)
-    - Bash(git diff:*)
-    - Bash(wc:*)
-    - Bash(grep:*)
-    - Bash(cat:*)
-    - Bash(test:*)
+    - "Bash(ls:*)"
+    - "Bash(find:*)"
+    - "Bash(git status:*)"
+    - "Bash(git diff:*)"
+    - "Bash(wc:*)"
+    - "Bash(grep:*)"
+    - "Bash(cat:*)"
+    - "Bash(test:*)"
     - Read
     - Edit
     - Write
     - Glob
     - Grep
     - Skill
-hooks:
-  - matcher: ""
-    once: true
-    commands:
-      - echo "Starting CLAUDE.md sync workflow"
 ---
 
 # /sync-claude-md — CLAUDE.md Sync & Cleanup

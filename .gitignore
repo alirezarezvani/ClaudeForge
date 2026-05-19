@@ -85,3 +85,11 @@ subagent-claude-md-guardian/
 
 # Optional project files
 PROJECT_SUMMARY.md
+
+# ClaudeForge: personal / machine-local overrides outside the chained tree
+CLAUDE.local.md
+**/CLAUDE.local.md
+.claude/settings.local.json
+
+# ClaudeForge: per-developer hook overrides (e.g. disable validator locally)
+hooks/hooks-config.local.json

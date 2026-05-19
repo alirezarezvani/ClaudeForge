@@ -164,6 +164,7 @@ echo "  • Skill:    $SKILLS_DIR/claude-md-link-check/"
 echo "  • Skill:    $SKILLS_DIR/claude-md-dependency-rescan/"
 echo "  • Command:  $COMMANDS_DIR/enhance-claude-md.md"
 echo "  • Command:  $COMMANDS_DIR/sync-claude-md.md"
+echo "  • Command:  $COMMANDS_DIR/claude-to-agents.md"
 echo "  • Agent:    $AGENTS_DIR/claude-md-guardian.md"
 echo ""
 
@@ -360,6 +361,7 @@ if [ "$SCOPE" == "user-level" ]; then
     echo "  rm -rf ~/.claude/skills/claude-md-dependency-rescan"
     echo "  rm -f  ~/.claude/commands/enhance-claude-md.md"
     echo "  rm -f  ~/.claude/commands/sync-claude-md.md"
+    echo "  rm -f  ~/.claude/commands/claude-to-agents.md"
     echo "  rm -f ~/.claude/agents/claude-md-guardian.md"
 else
     echo "  rm -rf ./.claude/skills/claudeforge-skill"
@@ -369,6 +371,7 @@ else
     echo "  rm -rf ./.claude/skills/claude-md-dependency-rescan"
     echo "  rm -f  ./.claude/commands/enhance-claude-md.md"
     echo "  rm -f  ./.claude/commands/sync-claude-md.md"
+    echo "  rm -f  ./.claude/commands/claude-to-agents.md"
     echo "  rm -f ./.claude/agents/claude-md-guardian.md"
 fi
 echo ""

@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (wave 5 — CLAUDE.md → AGENTS.md conversion for Codex / Gemini)
+
+Cross-tool adoption: every project using ClaudeForge can now share its instructions with non-Claude tools (OpenAI Codex, Gemini Code Assist, anything honouring the AGENTS.md convention) without maintaining two files.
+
+- **`/claude-to-agents`** slash command (`command/claude-to-agents.md`) with three modes:
+  - `--symlink` (default on macOS / Linux) — `AGENTS.md` becomes a symlink to `CLAUDE.md`. One source of truth; edits propagate instantly. Windows falls back to `--copy` automatically with a stderr notice.
+  - `--copy` — byte-for-byte snapshot. Use when the user wants to fork the instructions or when their VCS/build pipeline doesn't follow symlinks.
+  - `--inline-chain` — recursively walks every `@path/.../CLAUDE.md` import and writes a single flat AGENTS.md with all sub-file content inlined. **Recommended for Codex / Gemini in modular projects** because those tools don't auto-resolve `@`-imports.
+- **`hooks/claude-to-agents.py`** — standalone, idempotent script. Backs up an existing `AGENTS.md` to `AGENTS.md.backup.<UTC-timestamp>` before overwrite (unless `--force`). Strips Claude-only scaffolding (backlink lines, `@`-import lines) from `--inline-chain` output. Cycle-safe (each file read at most once).
+- Plugin manifest registers the new command. Both installers list it in their banner and uninstall instructions.
+
 ### Added (wave 4 — forked task-style audit skills)
 
 Three new task-style skills under `skill/`, each using Anthropic's `context: fork` + `agent: Explore` so they run in an isolated subagent context (no caller chat history, ≤500-token summary back to the main session):

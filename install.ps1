@@ -183,6 +183,7 @@ Write-Host "  • Skill:    $skillsDir\claude-md-link-check\"
 Write-Host "  • Skill:    $skillsDir\claude-md-dependency-rescan\"
 Write-Host "  • Command:  $commandsDir\enhance-claude-md.md"
 Write-Host "  • Command:  $commandsDir\sync-claude-md.md"
+Write-Host "  • Command:  $commandsDir\claude-to-agents.md"
 Write-Host "  • Agent:    $agentsDir\claude-md-guardian.md"
 Write-Host ""
 
@@ -403,6 +404,7 @@ if ($scope -eq "user-level") {
     Write-Host "  Remove-Item -Recurse -Force ~\.claude\skills\claude-md-dependency-rescan"
     Write-Host "  Remove-Item -Force ~\.claude\commands\enhance-claude-md.md"
     Write-Host "  Remove-Item -Force ~\.claude\commands\sync-claude-md.md"
+    Write-Host "  Remove-Item -Force ~\.claude\commands\claude-to-agents.md"
     Write-Host "  Remove-Item -Force ~\.claude\agents\claude-md-guardian.md"
 } else {
     Write-Host "  Remove-Item -Recurse -Force .\.claude\skills\claudeforge-skill"
@@ -412,6 +414,7 @@ if ($scope -eq "user-level") {
     Write-Host "  Remove-Item -Recurse -Force .\.claude\skills\claude-md-dependency-rescan"
     Write-Host "  Remove-Item -Force .\.claude\commands\enhance-claude-md.md"
     Write-Host "  Remove-Item -Force .\.claude\commands\sync-claude-md.md"
+    Write-Host "  Remove-Item -Force .\.claude\commands\claude-to-agents.md"
     Write-Host "  Remove-Item -Force .\.claude\agents\claude-md-guardian.md"
 }
 Write-Host ""

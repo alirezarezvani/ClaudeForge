@@ -27,7 +27,8 @@
   ],
   "commands": [
     "./command/enhance-claude-md.md",
-    "./command/sync-claude-md.md"
+    "./command/sync-claude-md.md",
+    "./command/claude-to-agents.md"
   ],
   "agents": [
     "./agent/claude-md-guardian.md"

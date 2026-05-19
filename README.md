@@ -56,6 +56,7 @@ ClaudeForge is a comprehensive toolkit that eliminates the tedious process of ma
 
 - **`/enhance-claude-md`** (`command/enhance-claude-md.md`) — multi-phase init/enhance workflow with `argument-hint`, `when_to_use`, `allowed-tools`, and `disallowedTools` (blocks `WebFetch` / `WebSearch`). Delegates deep codebase scans to the Explore subagent.
 - **`/sync-claude-md`** (`command/sync-claude-md.md`) — inventory → prune stale refs → enforce the 150-line cap → repair root ↔ sub chain. **New `--weekly` flag** orchestrates the three audit skills in parallel before doing sync work.
+- **`/claude-to-agents`** (`command/claude-to-agents.md`) — convert the project's CLAUDE.md tree into an `AGENTS.md` for Codex / Gemini Code Assist / any tool honouring the AGENTS.md convention. Three modes: `--symlink` (one source of truth, default on macOS/Linux), `--copy` (snapshot), `--inline-chain` (flattens the `@path` chain into one self-contained file — recommended for modular projects since Codex/Gemini don't auto-resolve `@` imports). Backs up an existing AGENTS.md before overwrite.
 
 ### Agent
 
@@ -299,7 +300,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📊 Quick Stats
 
 - **5** skills (`claudeforge-skill`, `karpathy-guidelines`, plus three forked audit skills)
-- **2** slash commands (`/enhance-claude-md`, `/sync-claude-md` with `--weekly`)
+- **3** slash commands (`/enhance-claude-md`, `/sync-claude-md` with `--weekly`, `/claude-to-agents`)
 - **1** agent (`claude-md-guardian`, fail-closed contract)
 - **3** hook scripts wired across `PostToolUse`, `InstructionsLoaded`, `Stop`
 - **5** Python modules under `skill/` (analyzer, validator, generator, template_selector, workflow)

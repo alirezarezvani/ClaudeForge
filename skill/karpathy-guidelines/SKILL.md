@@ -2,6 +2,34 @@
 name: karpathy-guidelines
 description: Behavioral guardrails for LLM-assisted coding. Use when writing, reviewing, or refactoring code in any project to avoid overcomplication, keep changes surgical, surface assumptions early, and execute against verifiable success criteria.
 license: MIT
+paths:
+  - "**/*.py"
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/*.js"
+  - "**/*.jsx"
+  - "**/*.go"
+  - "**/*.rs"
+  - "**/*.java"
+  - "**/*.kt"
+  - "**/*.rb"
+  - "**/*.php"
+  - "**/*.swift"
+  - "**/*.c"
+  - "**/*.cc"
+  - "**/*.cpp"
+  - "**/*.h"
+  - "**/*.hpp"
+  - "**/*.cs"
+  - "**/*.scala"
+  - "**/*.sh"
+  - "**/*.bash"
+  - "**/*.zsh"
+  - "**/*.sql"
+allowed-tools:
+  - Read
+  - Glob
+  - Grep
 permissions:
   allow:
     - Read

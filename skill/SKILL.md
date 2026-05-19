@@ -1,6 +1,25 @@
 ---
 name: claude-md-enhancer
 description: Analyzes, generates, and enhances CLAUDE.md files for any project type using best practices, modular architecture support, and tech stack customization. Use when setting up new projects, improving existing CLAUDE.md files, or establishing AI-assisted development standards.
+model: haiku
+effort: medium
+paths:
+  - "**/CLAUDE.md"
+  - "**/CLAUDE.local.md"
+  - "**/AGENTS.md"
+  - "**/.cursorrules"
+  - "**/.windsurfrules"
+  - "**/.claude/rules/*.md"
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - "Bash(ls:*)"
+  - "Bash(find:*)"
+  - "Bash(git:*)"
+  - "Bash(wc:*)"
 permissions:
   allow:
     - Read
@@ -8,9 +27,9 @@ permissions:
     - Edit
     - Glob
     - Grep
-    - Bash(ls:*)
-    - Bash(find:*)
-    - Bash(git:*)
+    - "Bash(ls:*)"
+    - "Bash(find:*)"
+    - "Bash(git:*)"
 ---
 
 # CLAUDE.md File Enhancer
@@ -294,7 +313,7 @@ Analyzes existing CLAUDE.md files to identify structure, sections, and quality i
 Validates CLAUDE.md files against best practices and Anthropic guidelines.
 
 **Key Functions**:
-- `validate_length()` - Check file length (warn if >300 lines)
+- `validate_length()` - Check file length (hard cap: 150 lines; warn from 120)
 - `validate_structure()` - Verify required sections present
 - `validate_formatting()` - Check markdown formatting quality
 - `validate_completeness()` - Ensure critical information included
@@ -367,10 +386,11 @@ Before finalizing any CLAUDE.md generation:
 
 ## Template Categories
 
-### By Size
-- **Minimal** (50 lines) - Solo developers, prototypes, hackathons
-- **Core** (100-150 lines) - Small teams, MVPs, standard projects
-- **Detailed** (200-300 lines) - Large teams, production systems, enterprise
+### By Size (single CLAUDE.md cap: 150 lines)
+- **Minimal** (≤ 75 lines) - Solo developers, prototypes, hackathons
+- **Core** (≤ 100 lines) - Small teams, MVPs, standard projects
+- **Detailed** (≤ 125 lines) - Medium teams, production systems
+- **Comprehensive** (≤ 150 lines + modular sub-files) - Large teams, enterprise; spread detail across chained sub-CLAUDE.md files instead of growing the root
 
 ### By Project Type
 - **Web App** - Frontend-focused (React, Vue, Angular)

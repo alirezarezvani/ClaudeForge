@@ -12,9 +12,10 @@ import re
 class BestPracticesValidator:
     """Validates CLAUDE.md files against best practices and guidelines."""
 
-    # Maximum recommended line count
-    MAX_RECOMMENDED_LINES = 300
-    WARNING_THRESHOLD_LINES = 200
+    # Hard cap: every CLAUDE.md (root or modular) must stay under this.
+    # Modular split is required when content would exceed this cap.
+    MAX_RECOMMENDED_LINES = 150
+    WARNING_THRESHOLD_LINES = 120
 
     # Minimum content requirements
     MIN_LINES = 20
@@ -65,18 +66,24 @@ class BestPracticesValidator:
         }
     ]
 
-    def __init__(self, content: str, project_context: Dict[str, Any] = None):
+    def __init__(self, content: str, project_context: Dict[str, Any] = None, filename: str = None):
         """
         Initialize validator with CLAUDE.md content.
 
         Args:
             content: Full text content of CLAUDE.md file
             project_context: Optional project context for advanced validation
+            filename: Optional path or basename. When the basename ends with
+                ``.local.md`` (e.g. ``CLAUDE.local.md``), the 150-line cap is
+                relaxed because the file is a personal/gitignored override
+                outside the chained team-shared tree.
         """
         self.content = content
         self.lines = content.split('\n')
         self.line_count = len(self.lines)
         self.project_context = project_context or {}
+        self.filename = filename or ""
+        self.is_local_override = self.filename.endswith('.local.md')
 
     def validate_all(self) -> Dict[str, Any]:
         """
@@ -110,6 +117,25 @@ class BestPracticesValidator:
         status = "pass"
         message = f"File length is appropriate ({self.line_count} lines)"
         severity = "info"
+
+        # CLAUDE.local.md (and any *.local.md sibling) is a personal,
+        # gitignored override outside the chained team-shared tree. Skip the
+        # 150-line cap — only flag underuse.
+        if self.is_local_override:
+            if self.line_count < self.MIN_LINES:
+                status = "fail"
+                message = f"Personal override is too short ({self.line_count} lines, minimum {self.MIN_LINES})"
+                severity = "low"
+            else:
+                message = f"Personal override ({self.line_count} lines, cap waived)"
+            return {
+                "check": "file_length",
+                "status": status,
+                "message": message,
+                "severity": severity,
+                "actual_value": self.line_count,
+                "expected_range": f"{self.MIN_LINES}+ lines (cap waived for *.local.md)",
+            }
 
         if self.line_count > self.MAX_RECOMMENDED_LINES:
             status = "fail"

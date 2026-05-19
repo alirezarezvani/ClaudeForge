@@ -1,18 +1,34 @@
 ---
-description: Initialize or enhance CLAUDE.md files using the claude-md-enhancer skill with interactive workflow and 100% native format compliance
+description: Initialize or enhance a CLAUDE.md (and chained sub-CLAUDE.md files) for the current project using the claude-md-enhancer skill. Delegates deep codebase scans to the Explore subagent and stays within the 150-line cap.
+argument-hint: "[--init | --enhance | <path-to-CLAUDE.md>]"
+when_to_use: |
+  Use whenever a project has no CLAUDE.md, when an existing one is over 150 lines,
+  when an /init result needs to be hardened against context bloat, or when a repo
+  already uses AGENTS.md / .cursorrules / .windsurfrules and you want a Claude-
+  aware root that chains to them via @-imports instead of overwriting.
+allowed-tools:
+  - Read
+  - Edit
+  - Write
+  - Glob
+  - Grep
+  - Skill
+  - "Bash(ls:*)"
+  - "Bash(find:*)"
+  - "Bash(git status:*)"
+  - "Bash(git diff:*)"
+  - "Bash(wc:*)"
+disallowedTools:
+  - WebFetch
+  - WebSearch
 permissions:
   allow:
-    - Bash(ls:*)
-    - Bash(find:*)
-    - Bash(git status:*)
+    - "Bash(ls:*)"
+    - "Bash(find:*)"
+    - "Bash(git status:*)"
     - Read
     - Glob
     - Skill
-hooks:
-  - matcher: ""
-    once: true
-    commands:
-      - echo "Starting CLAUDE.md enhancement workflow"
 ---
 
 # CLAUDE.md Enhancer Command
@@ -38,6 +54,20 @@ This command uses the `claude-md-enhancer` skill to initialize or enhance CLAUDE
 ### Check project structure
 
 !`ls -la`
+
+### Check for sibling agent / rule files
+
+If `AGENTS.md`, `.cursorrules`, or `.windsurfrules` exists, ClaudeForge will preserve it and chain it from the root CLAUDE.md via `@AGENTS.md` (or the equivalent) instead of overwriting. Detect them now:
+
+!`for f in AGENTS.md .cursorrules .windsurfrules; do [ -f "$f" ] && echo "found: $f ($(wc -l < "$f") lines)" || echo "absent: $f"; done`
+
+### Deep project scan via Explore agent
+
+For non-trivial repositories, delegate the codebase walk to the **Explore** subagent so the discovery does not bloat this command's context window. Ask it a single, scoped question — for example:
+
+> Walk this repository and report: project type (web_app / api / fullstack / cli / library / mobile / desktop), languages and frameworks detected, primary tech stack files (package.json, requirements.txt, pyproject.toml, go.mod, Cargo.toml), team-size indicators (number of contributors, CODEOWNERS), workflow indicators (.github/workflows, Dockerfile, CI configs), and any subdirectories that warrant their own CLAUDE.md (backend/, frontend/, database/, docs/, .github/). Return findings as a compact JSON object. Under 250 words.
+
+Use the **general-purpose** subagent only for research that requires synthesising findings across multiple agents (e.g. comparing detected stack against template registry). Keep agent prompts self-contained and ask for short, structured reports.
 
 ---
 

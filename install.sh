@@ -159,7 +159,12 @@ echo ""
 print_info "Installation will create:"
 echo "  • Skill:    $SKILLS_DIR/claudeforge-skill/"
 echo "  • Skill:    $SKILLS_DIR/karpathy-guidelines/"
-echo "  • Command:  $COMMANDS_DIR/enhance-claude-md/"
+echo "  • Skill:    $SKILLS_DIR/claude-md-drift-audit/"
+echo "  • Skill:    $SKILLS_DIR/claude-md-link-check/"
+echo "  • Skill:    $SKILLS_DIR/claude-md-dependency-rescan/"
+echo "  • Command:  $COMMANDS_DIR/enhance-claude-md.md"
+echo "  • Command:  $COMMANDS_DIR/sync-claude-md.md"
+echo "  • Command:  $COMMANDS_DIR/claude-to-agents.md"
 echo "  • Agent:    $AGENTS_DIR/claude-md-guardian.md"
 echo ""
 
@@ -203,15 +208,47 @@ cp -r skill/karpathy-guidelines "$SKILLS_DIR/karpathy-guidelines"
 rm -rf "$SKILLS_DIR/claudeforge-skill/karpathy-guidelines"
 print_success "Karpathy guidelines installed → $SKILLS_DIR/karpathy-guidelines/"
 
-# Install slash command
-print_info "Installing /enhance-claude-md command..."
+# Install the forked task-style audit skills as separate top-level skills
+# so each is invocable standalone (/claude-md-drift-audit etc.) and
+# discoverable by /sync-claude-md --weekly.
+for audit_skill in claude-md-drift-audit claude-md-link-check claude-md-dependency-rescan; do
+    print_info "Installing $audit_skill skill..."
+    audit_target="$SKILLS_DIR/$audit_skill"
+    if [ -d "$audit_target" ]; then
+        print_warning "Existing $audit_skill skill found. Creating backup..."
+        mv "$audit_target" "$audit_target.backup.$(date +%Y%m%d_%H%M%S)"
+    fi
+    cp -r "skill/$audit_skill" "$audit_target"
+    rm -rf "$SKILLS_DIR/claudeforge-skill/$audit_skill"
+    print_success "$audit_skill installed → $audit_target/"
+done
+
+# Install slash commands. Each .md file in command/ is installed as its own
+# top-level command file so it registers as /<name> rather than as a nested
+# /<dir>:<name>. README.md and other non-command files are skipped.
+print_info "Installing slash commands..."
+
+# Migrate legacy bundle directory if present.
 if [ -d "$COMMANDS_DIR/enhance-claude-md" ]; then
-    print_warning "Existing command found. Creating backup..."
+    print_warning "Legacy command bundle found. Creating backup..."
     mv "$COMMANDS_DIR/enhance-claude-md" "$COMMANDS_DIR/enhance-claude-md.backup.$(date +%Y%m%d_%H%M%S)"
     print_success "Backup created"
 fi
-cp -r command "$COMMANDS_DIR/enhance-claude-md"
-print_success "Command installed → $COMMANDS_DIR/enhance-claude-md/"
+
+for cmd_file in command/*.md; do
+    cmd_basename=$(basename "$cmd_file")
+    # Skip the directory's own README.
+    if [ "$cmd_basename" = "README.md" ]; then
+        continue
+    fi
+    cmd_target="$COMMANDS_DIR/$cmd_basename"
+    if [ -f "$cmd_target" ]; then
+        print_warning "Existing $cmd_basename found. Creating backup..."
+        mv "$cmd_target" "$cmd_target.backup.$(date +%Y%m%d_%H%M%S)"
+    fi
+    cp "$cmd_file" "$cmd_target"
+    print_success "Command installed → $cmd_target"
+done
 
 # Install guardian agent
 print_info "Installing claude-md-guardian agent..."
@@ -319,12 +356,22 @@ echo ""
 if [ "$SCOPE" == "user-level" ]; then
     echo "  rm -rf ~/.claude/skills/claudeforge-skill"
     echo "  rm -rf ~/.claude/skills/karpathy-guidelines"
-    echo "  rm -rf ~/.claude/commands/enhance-claude-md"
+    echo "  rm -rf ~/.claude/skills/claude-md-drift-audit"
+    echo "  rm -rf ~/.claude/skills/claude-md-link-check"
+    echo "  rm -rf ~/.claude/skills/claude-md-dependency-rescan"
+    echo "  rm -f  ~/.claude/commands/enhance-claude-md.md"
+    echo "  rm -f  ~/.claude/commands/sync-claude-md.md"
+    echo "  rm -f  ~/.claude/commands/claude-to-agents.md"
     echo "  rm -f ~/.claude/agents/claude-md-guardian.md"
 else
     echo "  rm -rf ./.claude/skills/claudeforge-skill"
     echo "  rm -rf ./.claude/skills/karpathy-guidelines"
-    echo "  rm -rf ./.claude/commands/enhance-claude-md"
+    echo "  rm -rf ./.claude/skills/claude-md-drift-audit"
+    echo "  rm -rf ./.claude/skills/claude-md-link-check"
+    echo "  rm -rf ./.claude/skills/claude-md-dependency-rescan"
+    echo "  rm -f  ./.claude/commands/enhance-claude-md.md"
+    echo "  rm -f  ./.claude/commands/sync-claude-md.md"
+    echo "  rm -f  ./.claude/commands/claude-to-agents.md"
     echo "  rm -f ./.claude/agents/claude-md-guardian.md"
 fi
 echo ""

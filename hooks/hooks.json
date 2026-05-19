@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-hooks.json",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT:-${CLAUDE_PROJECT_DIR}}/hooks/validate-claude-md.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "InstructionsLoaded": [
+      {
+        "matcher": "session_start|nested_traversal|path_glob_match|include|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT:-${CLAUDE_PROJECT_DIR}}/hooks/validate-claude-md.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT:-${CLAUDE_PROJECT_DIR}}/hooks/audit-claude-md.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

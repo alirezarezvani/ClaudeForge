@@ -78,7 +78,11 @@ class TemplateSelector:
         }
     }
 
-    # Team size templates
+    # Team size templates. All targets stay <= MAX_LINES_PER_FILE (150) so any
+    # single CLAUDE.md remains within the hard cap; larger projects spread
+    # content across modular sub-files instead of growing the root file.
+    MAX_LINES_PER_FILE = 150
+
     TEAM_SIZE_TEMPLATES = {
         "solo": {
             "target_lines": 75,
@@ -87,19 +91,19 @@ class TemplateSelector:
             "detail_level": "concise"
         },
         "small": {
-            "target_lines": 125,
+            "target_lines": 100,
             "complexity": "core",
             "focus": "Core guidelines, collaboration basics",
             "detail_level": "moderate"
         },
         "medium": {
-            "target_lines": 200,
+            "target_lines": 125,
             "complexity": "detailed",
             "focus": "Team coordination, process standardization",
             "detail_level": "comprehensive"
         },
         "large": {
-            "target_lines": 275,
+            "target_lines": 150,
             "complexity": "comprehensive",
             "focus": "Enterprise standards, governance",
             "detail_level": "extensive"

@@ -29,7 +29,7 @@ Common issues and solutions for ClaudeForge.
 2. **Verify installation paths:**
    ```bash
    # macOS/Linux
-   ls -la ~/.claude/commands/enhance-claude-md/
+   ls -la ~/.claude/commands/enhance-claude-md.md ~/.claude/commands/sync-claude-md.md
    ls -la ~/.claude/skills/claudeforge-skill/
    ls -la ~/.claude/agents/claude-md-guardian.md
 
@@ -119,7 +119,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 2. **Check file length:**
    ```bash
    wc -l CLAUDE.md
-   # Recommended: 20-300 lines
+   # Hard cap: 150 lines. Sweet spot: 50-120.
    # If > 300: Consider modular architecture
    ```
 
@@ -173,7 +173,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 **Symptoms:**
 - Single CLAUDE.md generated for large project
-- File exceeds 300 lines
+- File exceeds the 150-line cap (validator hook will surface this)
 
 **Causes:**
 - Project type not detected as `fullstack`

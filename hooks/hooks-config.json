@@ -1,0 +1,12 @@
+{
+  "$comment": "ClaudeForge shared hook config. Commit this file. Per-developer overrides go in hooks/hooks-config.local.json (gitignored).",
+  "validateClaudeMd": {
+    "enabled": true,
+    "maxLines": 150,
+    "exemptFilenameSuffix": ".local.md",
+    "exitCodeOnViolation": 2
+  },
+  "stopAuditLine": {
+    "enabled": true
+  }
+}

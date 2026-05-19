@@ -211,9 +211,10 @@ def calculate_quality_score(self) → int:
 **Validation Categories:**
 
 1. **Length Validation**
-   - Recommended: 20-300 lines
-   - Warning: 300-400 lines (suggest modular)
-   - Error: < 20 or > 400 lines
+   - Recommended: 20–120 lines (sweet spot)
+   - Warning: 120–150 lines (approaching cap)
+   - **Hard cap: 150 lines** — enforced deterministically by `hooks/validate-claude-md.py` on `PostToolUse(Edit|Write)` *and* `InstructionsLoaded`. Files over the cap must be split into chained sub-CLAUDE.md files.
+   - Exempt: any file whose basename ends in `.local.md` (personal-tier override).
 
 2. **Structure Validation**
    - Required sections: Core Principles, Tech Stack, Workflow
@@ -432,9 +433,9 @@ Triggers update if:
 
 ### File Size Limits
 
-- Single file: Max 400 lines (prefer 300)
-- Modular files: Each 150-300 lines
-- Total project: Unlimited with modular
+- Every CLAUDE.md: hard cap 150 lines (no exceptions outside `*.local.md`).
+- Modular split via `@path/to/sub/CLAUDE.md` chain imports when content would exceed the cap.
+- Total project: unlimited via modular chaining + `.claude/rules/*.md` for path-scoped guidance.
 
 ### Caching Strategy
 

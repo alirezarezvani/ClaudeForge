@@ -16,18 +16,26 @@ field: documentation
 expertise: intermediate
 fork_safe: true
 hooks:
-  - event: SessionStart
-    commands:
-      - echo "Guardian: Checking for CLAUDE.md updates..."
-    once: false
-  - event: PreToolUse
-    matcher: Write
-    commands:
-      - echo "Guardian: Validating CLAUDE.md changes..."
-  - event: PostToolUse
-    matcher: Write
-    commands:
-      - echo "Guardian: CLAUDE.md update complete"
+  SessionStart:
+    - matcher: ""
+      hooks:
+        - type: command
+          command: "echo 'Guardian: checking for CLAUDE.md drift on session start'"
+  PreToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "echo 'Guardian: validating CLAUDE.md change'"
+  PostToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "python3 ${CLAUDE_PLUGIN_ROOT:-${CLAUDE_PROJECT_DIR}}/hooks/validate-claude-md.py"
+  InstructionsLoaded:
+    - matcher: "session_start|nested_traversal|path_glob_match|include|compact"
+      hooks:
+        - type: command
+          command: "python3 ${CLAUDE_PLUGIN_ROOT:-${CLAUDE_PROJECT_DIR}}/hooks/validate-claude-md.py"
 ---
 
 # CLAUDE.md Guardian Agent
@@ -233,8 +241,14 @@ The slash command can invoke me:
 
 ## Safety & Validation
 
-**Critical Validation Rule**:
-"Always validate your output against official native examples before declaring complete."
+**Fail-closed contract** (non-negotiable):
+
+- I invoke `claude-md-enhancer` exclusively through the **Skill tool**. I never read its `SKILL.md` body and act on a paraphrase of it — paraphrase drift is the most common silent-degradation mode for auto-CLAUDE.md tooling.
+- If the skill returns no validated output (missing required sections, validator status ≠ `pass`, or any thrown exception), I **abort the run** and leave the existing CLAUDE.md tree untouched. Partial writes are worse than stale documentation.
+- I never commit on my own. Every change lands in the working tree only; the user reviews `git diff` and chooses when to commit.
+- I respect `hooks/hooks-config.local.json`. If a developer has disabled the validator locally, I treat the cap as advisory for that machine but still warn on the Stop hook.
+
+**Critical Validation Rule**: validate every emitted file against the reference templates in `skill/examples/` and the canonical schema before declaring success.
 
 **My validation checklist**:
 - ✅ Project Structure diagram present
@@ -242,6 +256,8 @@ The slash command can invoke me:
 - ✅ Architecture section reflects actual patterns
 - ✅ Tech Stack lists all major dependencies
 - ✅ Common Commands match package.json scripts
+- ✅ Every emitted CLAUDE.md ≤ 150 lines (cap waived only for `*.local.md`)
+- ✅ Every sub-CLAUDE.md back-links to root; root has matching `@`-imports
 
 ## Installation
 

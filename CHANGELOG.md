@@ -9,12 +9,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (wave 5 — CLAUDE.md → AGENTS.md conversion for Codex / Gemini)
+
+Cross-tool adoption: every project using ClaudeForge can now share its instructions with non-Claude tools (OpenAI Codex, Gemini Code Assist, anything honouring the AGENTS.md convention) without maintaining two files.
+
+- **`/claude-to-agents`** slash command (`command/claude-to-agents.md`) with three modes:
+  - `--symlink` (default on macOS / Linux) — `AGENTS.md` becomes a symlink to `CLAUDE.md`. One source of truth; edits propagate instantly. Windows falls back to `--copy` automatically with a stderr notice.
+  - `--copy` — byte-for-byte snapshot. Use when the user wants to fork the instructions or when their VCS/build pipeline doesn't follow symlinks.
+  - `--inline-chain` — recursively walks every `@path/.../CLAUDE.md` import and writes a single flat AGENTS.md with all sub-file content inlined. **Recommended for Codex / Gemini in modular projects** because those tools don't auto-resolve `@`-imports.
+- **`hooks/claude-to-agents.py`** — standalone, idempotent script. Backs up an existing `AGENTS.md` to `AGENTS.md.backup.<UTC-timestamp>` before overwrite (unless `--force`). Strips Claude-only scaffolding (backlink lines, `@`-import lines) from `--inline-chain` output. Cycle-safe (each file read at most once).
+- Plugin manifest registers the new command. Both installers list it in their banner and uninstall instructions.
+
+### Added (wave 4 — forked task-style audit skills)
+
+Three new task-style skills under `skill/`, each using Anthropic's `context: fork` + `agent: Explore` so they run in an isolated subagent context (no caller chat history, ≤500-token summary back to the main session):
+
+- **`claude-md-drift-audit`** (`skill/claude-md-drift-audit/SKILL.md`, 51 lines): walks the last N days of git history (default 7), cross-references every CLAUDE.md and `.claude/rules/*.md` against deleted paths / renamed paths / removed deps from that window, returns a punch list. Read-only.
+- **`claude-md-link-check`** (`skill/claude-md-link-check/SKILL.md`, 51 lines): verifies every `@path` chain import and every relative markdown link inside every CLAUDE.md resolves to an existing file. Returns broken links with file:line refs. Read-only.
+- **`claude-md-dependency-rescan`** (`skill/claude-md-dependency-rescan/SKILL.md`, 54 lines): re-detects the project's tech stack from `package.json` / `requirements.txt` / `pyproject.toml` / `go.mod` / `Cargo.toml`, diffs against every CLAUDE.md's Tech Stack section, returns added / removed / renamed lists per file. Read-only.
+
+All three are standalone-invocable (`/claude-md-drift-audit`, etc.) and orchestrated by **`/sync-claude-md --weekly`**, which now opens with a Phase 0 that issues the three skills in parallel via the Skill tool before doing the normal sync work. Plugin manifest registers all five skills (the two existing + three new).
+
+### Added (wave 3 — adoption hardening)
+
+- **Command discovery metadata** (`command/enhance-claude-md.md`, `command/sync-claude-md.md`): both commands now declare `allowed-tools`, `disallowedTools` (blocks `WebFetch`/`WebSearch`), `argument-hint`, and `when_to_use` so Claude Code can auto-suggest and zero-prompt them.
+- **Path-scoped Karpathy guidelines** (`skill/karpathy-guidelines/SKILL.md`): `paths:` glob on code-file extensions (`*.py`, `*.ts`, `*.go`, `*.rs`, etc.) so the guardrails load only when editing code, not when editing markdown or data.
+- **Cheaper skill execution** (`skill/SKILL.md`): `model: haiku`, `effort: medium`, and `paths:` scoping the skill to CLAUDE.md / AGENTS.md / `.claude/rules/*.md` so validator + generator passes run cheaply without affecting the user-facing model.
+- **`CLAUDE.local.md` personal tier**: `validator.BestPracticesValidator` now accepts `filename=` and waives the 150-line cap for any `*.local.md` file. `hooks/validate-claude-md.py` is exempt-suffix aware too. `.gitignore` excludes `CLAUDE.local.md`, `**/CLAUDE.local.md`, `.claude/settings.local.json`, and `hooks/hooks-config.local.json`.
+- **Layered hook config** (`hooks/hooks-config.json` shared + `hooks/hooks-config.local.json` gitignored): `validate-claude-md.py` merges the two and honours `validateClaudeMd.enabled: false`, `maxLines`, `exemptFilenameSuffix`, and `exitCodeOnViolation`. Teams can opt out per developer without forking the shipped config.
+- **`Stop` audit hook** (`hooks/audit-claude-md.py` + entry in `hooks/hooks.json`): prints a 1-line summary to stderr at session end — total CLAUDE.md tracked, count over the cap, count near it — so users see drift before the session's context is lost.
+- **Fail-closed contract on guardian** (`agent/claude-md-guardian.md` Safety & Validation section): the guardian now states it invokes `claude-md-enhancer` exclusively through the Skill tool (never paraphrases SKILL.md content), aborts on missing validated output, never auto-commits, and respects the local hook config.
+
+Patterns adapted (with attribution and in original prose) from the MIT-licensed [shanraisshan/claude-code-best-practice](https://github.com/shanraisshan/claude-code-best-practice).
+
+### Fixed
+
+- **Guardian agent hook frontmatter** (`agent/claude-md-guardian.md`): rewritten from the array-of-objects shape (`hooks: [{ event, commands }]`) to Anthropic's canonical keyed-object shape (`hooks: { EventName: [{ matcher, hooks: [{ type: "command", command }] }] }`). The previous shape did not match the documented schema, so the guardian's hooks did not fire. ([docs](https://code.claude.com/docs/en/hooks))
+
 ### Added
 
-- **Karpathy Guidelines skill** (`skill/karpathy-guidelines/SKILL.md`): a behavioral-guardrail skill installed alongside ClaudeForge that applies to every coding, review, and refactoring task. Covers four principles — Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution — adapted with attribution from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) repository.
-- **Automatic embedding into every CLAUDE.md**: `skill/template_selector.py` and `skill/generator.py` now insert a `## Behavioral Guidelines` section into every generated and enhanced CLAUDE.md, so the principles ship with every project that runs `/enhance-claude-md`.
-- **Installer support for the new skill**: `install.sh` and `install.ps1` now copy the skill to `~/.claude/skills/karpathy-guidelines/` (or the project-level equivalent) and include it in the uninstall instructions.
-- **Slash command documentation**: `command/enhance-claude-md.md` documents the always-on Behavioral Guidelines section as a required part of the workflow.
+- **Plugin-level hooks** (`hooks/hooks.json` + `hooks/validate-claude-md.py`): every `Edit`/`Write` to a `CLAUDE.md` and every `InstructionsLoaded` event (all five `load_reason` values — `session_start`, `nested_traversal`, `path_glob_match`, `include`, `compact`) runs `validate-claude-md.py`, which exits `2` with stderr feedback when the touched file exceeds the 150-line cap. Turns the cap from advisory into deterministic enforcement at load time and write time.
+- **`generate_rules_file()` on `ContentGenerator`** (`skill/generator.py`): emits path-scoped `.claude/rules/*.md` instruction files with `name`, `description`, and `paths:` glob frontmatter. Claude loads these conditionally when accessing files that match the globs, so file-type-specific guidance (e.g. backend-only standards) no longer has to live in the root CLAUDE.md.
+- **`AGENTS.md` / `.cursorrules` / `.windsurfrules` interop**: `command/enhance-claude-md.md` Phase 1 now detects these sibling instruction files, and `ContentGenerator.generate_root_file()` prepends an `## External Instructions` section with `@AGENTS.md`-style imports when `project_context['existing_instruction_files']` lists them. Repos already using other agent tooling can adopt ClaudeForge without losing their existing instructions.
+
+### Added (earlier in this Unreleased window)
+
+- **Claude Code plugin manifest** (`.claude-plugin/plugin.json`): ClaudeForge is now installable as a Claude Code plugin via `/plugin marketplace add alirezarezvani/ClaudeForge && /plugin install claudeforge`. Manifest registers all skills, commands, and the guardian agent in one bundle.
+- **`/sync-claude-md` slash command** (`command/sync-claude-md.md`): walks every CLAUDE.md in the project, prunes stale references (removed dependencies, deleted paths, broken modular links), enforces the 150-line cap, and repairs the root ↔ sub chain. Designed to run after refactors, dependency changes, or before a release.
+- **Karpathy Guidelines skill** (`skill/karpathy-guidelines/SKILL.md`): behavioural-guardrail skill applied to every coding, review, and refactoring task. Covers four principles — Think Before Coding, Simplicity First, Surgical Changes, Goal-Driven Execution — adapted with attribution from the MIT-licensed [forrestchang/andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) repository.
+- **Automatic embedding into every CLAUDE.md**: `skill/template_selector.py` and `skill/generator.py` insert a `## Behavioral Guidelines` section into every generated and enhanced CLAUDE.md.
+- **Modular chaining via `@path` imports**: the modular root generator emits both human-readable markdown links and Claude Code `@path/to/CLAUDE.md` imports for every sub-CLAUDE.md. Sub-files now get a back-link header pointing to the root file so navigation is bidirectional.
+- **Explore-agent delegation in `/enhance-claude-md`**: deep project scans are delegated to the Explore subagent to keep the calling session's context lean.
+
+### Changed
+
+- **Hard 150-line cap per CLAUDE.md**: `validator.MAX_RECOMMENDED_LINES` lowered from 300 to 150 (warning at 120). `template_selector.TEAM_SIZE_TEMPLATES` target lines lowered to fit (solo 75 / small 100 / medium 125 / large 150). `analyzer` length thresholds and quality scoring rebased on the new cap. Projects that need more content split it across chained sub-files instead of growing the root.
+- **Installers register commands as top-level files**: `install.sh` and `install.ps1` now install each `.md` under `command/` as its own `~/.claude/commands/<name>.md` (registering as `/<name>`) rather than bundling the whole directory under one path. Legacy `~/.claude/commands/enhance-claude-md/` bundles are backed up automatically on upgrade.
+
+### Verified
+
+- Smoke tests: validator constants, all four team-size templates, generator output for solo/small/medium/large + library presets (all ≤ 150 lines), context files with back-links, `@`-import chain in modular root, idempotent `merge_with_existing`, validator status transitions (pass / warning / fail) at the new cap, analyzer quality score differential between compliant and bloated files, plugin manifest JSON shape and that every referenced path exists on disk.
 
 ---
 

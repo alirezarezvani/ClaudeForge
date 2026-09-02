@@ -1,0 +1,28 @@
+{
+  "name": "black-box-safety",
+  "owner": {
+    "name": "Black Box Safety, Inc.",
+    "url": "https://github.com/Black-Box-Safety"
+  },
+  "description": "Black Box Safety internal Claude Code plugin catalog.",
+  "plugins": [
+    {
+      "name": "claudeforge",
+      "source": ".",
+      "version": "2.1.0",
+      "displayName": "ClaudeForge",
+      "description": "CLAUDE.md lifecycle toolkit: initialise, enhance, sync, and modularise CLAUDE.md files with a 150-line cap, automatic chaining, and Karpathy behavioural guardrails.",
+      "author": {
+        "name": "Alireza Rezvani"
+      },
+      "category": "productivity",
+      "tags": [
+        "claude-md",
+        "documentation",
+        "context-management",
+        "modular",
+        "sync"
+      ]
+    }
+  ]
+}
